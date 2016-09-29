@@ -1,4 +1,4 @@
-#
+﻿#
 #
 #
 
@@ -46,3 +46,4 @@ clean:
 	$(MAKE) -C ruuvi_examples/ble_app_beacon/ruuvitag_b3/s132/armgcc clean
 	$(MAKE) -C bootloader/ruuvitag_b3_debug/armgcc clean
 	$(MAKE) -C bootloader/ruuvitag_b3_production/armgcc clean
+	rm html/index.html

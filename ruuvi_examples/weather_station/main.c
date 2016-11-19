@@ -149,7 +149,7 @@ static void readData(void)
    NRF_LOG_DEBUG("temperature: %d, pressure: %d, humidity: %d", raw_t, raw_p, raw_h);
 
    //Convert raw values to ruu.vi specification
-   sensor_values.temperature = raw_t * 256 / 100;
+   sensor_values.temperature = (uint16_t)float2fix((float)raw_t/100);
    sensor_values.pressure = (uint16_t)((raw_p/256) - 50000);
    sensor_values.humidity = (uint8_t)((raw_h/1024) * 2);
 

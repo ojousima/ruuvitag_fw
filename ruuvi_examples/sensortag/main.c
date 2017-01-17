@@ -66,8 +66,8 @@
 2-3: uint16_t    temperature;     // Signed 8.8 fixed-point notation.
 4-5: uint16_t    pressure;        // (-50kPa)
 */
-#define WEATHER_STATION_URL_FORMAT      0x02				  /**< Base64 */
-#define ENCODED_DATA_LENGTH             8                                 /* 48 bits * (4 / 3) / 8 */
+#define SENSOR_TAG_URL_FORMAT           0x03				  /**< Base64, includes acceleration */
+#define ENCODED_DATA_LENGTH             12                                /* 72 bits * (4 / 3) / 8 */
 
 //Timers
 #define APP_TIMER_PRESCALER             RUUVITAG_APP_TIMER_PRESCALER      /**< Value of the RTC1 PRESCALER register. */
@@ -133,10 +133,14 @@ static void main_timer_handler(void * p_context)
 // Sensor values
 typedef struct 
 {
-uint8_t     format;         // does not include time
+uint8_t     format;         // 
 uint8_t     humidity;       // one lsb is 0.5%
 uint16_t    temperature;    // Signed 8.8 fixed-point notation.
 uint16_t    pressure;       // Pascals (pa)
+int16_t     accX;           // Milli-g (mg)
+int16_t     accY;
+int16_t     accZ;
+uint32_t    id;             // pseudo-random id 
 }ruuvi_sensor_t;
 
 static ruuvi_sensor_t sensor_values;
@@ -153,6 +157,7 @@ static void readData(void)
    
     NRF_LOG_DEBUG("temperature: %d, pressure: %d, humidity: %d", raw_t, raw_p, raw_h);
 
+
     /*
     0:   uint8_t     format;          // (0x02 = realtime sensor readings base64)
     1:   uint8_t     humidity;        // one lsb is 0.5%
@@ -161,13 +166,18 @@ static void readData(void)
     */
     //Convert raw values to ruu.vi specification
     //Round values: 1 deg C, 1 hPa, 1% RH 
-    sensor_values.format = WEATHER_STATION_URL_FORMAT;
+    sensor_values.id = NRF_FICR->DEVICEID[0];
+    sensor_values.format = SENSOR_TAG_URL_FORMAT;
     sensor_values.temperature = (raw_t < 0) ? 0x8000 : 0x0000; //Sign bit
     if(raw_t < 0) raw_t = 0-raw_t; // disrecard sign
     sensor_values.temperature |= (((raw_t * 256) / 100));//8:8 signed fixed point, Drop decimals
     sensor_values.pressure = (uint16_t)((raw_p >> 8) - 50000); //Scale into pa, Shift by -50000 pa as per Ruu.vi interface.
     sensor_values.humidity = (uint8_t)(raw_h >> 11); 
     sensor_values.humidity <<= 2; //sensor_values.humidity = (uint8_t)((raw_h/1024) * 2);
+
+    // Get accelerometer data
+    LIS2DH12_Ret LIS2DH12_getALLmG(&sensor_values.accX, &sensor_values.accY, &sensor_values.accZ);    
+
 
     //serialize values into a string
     char pack[6] = {0};
@@ -234,12 +244,14 @@ int main(void)
     //}//user pressed button, start.
     application_started = true; //set flag
 	
-    //Lis2dh12RetVal = LIS2DH12_init(LIS2DH12_POWER_LOW, LIS2DH12_SCALE2G, NULL);//start accelerometer // not needed in weather station
+    //start accelerometer
+    Lis2dh12RetVal = LIS2DH12_init(LIS2DH12_POWER_LOW, LIS2DH12_SCALE2G, NULL);
 
     //setup BME280
     bme280_set_oversampling_hum(BME280_OVERSAMPLING_1);
     bme280_set_oversampling_temp(BME280_OVERSAMPLING_1);
     bme280_set_oversampling_press(BME280_OVERSAMPLING_1);
+    
     //Start single measurement
     bme280_set_mode(BME280_MODE_FORCED);
     NRF_LOG_INFO("BME280 configuration done\r\n");

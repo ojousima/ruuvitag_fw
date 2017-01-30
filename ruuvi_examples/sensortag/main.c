@@ -176,7 +176,7 @@ static void readData(void)
     sensor_values.humidity <<= 2; //sensor_values.humidity = (uint8_t)((raw_h/1024) * 2);
 
     // Get accelerometer data
-    LIS2DH12_Ret LIS2DH12_getALLmG(&sensor_values.accX, &sensor_values.accY, &sensor_values.accZ);    
+    LIS2DH12_getALLmG(&sensor_values.accX, &sensor_values.accY, &sensor_values.accZ);    
 
 
     //serialize values into a string

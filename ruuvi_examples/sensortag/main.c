@@ -170,10 +170,10 @@ static void readData(void)
     sensor_values.format = SENSOR_TAG_URL_FORMAT;
     sensor_values.temperature = (raw_t < 0) ? 0x8000 : 0x0000; //Sign bit
     if(raw_t < 0) raw_t = 0-raw_t; // disrecard sign
-    sensor_values.temperature |= (((raw_t * 256) / 100));//8:8 signed fixed point, Drop decimals
+    sensor_values.temperature |= (((raw_t * 256) / 100));//raw_t is 8:8 signed fixed point, Scale up to next byte, Drop decimals. 
     sensor_values.pressure = (uint16_t)((raw_p >> 8) - 50000); //Scale into pa, Shift by -50000 pa as per Ruu.vi interface.
-    sensor_values.humidity = (uint8_t)(raw_h >> 11); 
-    sensor_values.humidity <<= 2; //sensor_values.humidity = (uint8_t)((raw_h/1024) * 2);
+    sensor_values.humidity = (uint8_t)(raw_h >> 9); 
+    //sensor_values.humidity <<= 2; //sensor_values.humidity = (uint8_t)((raw_h/1024) * 2);
 
     // Get accelerometer data
     LIS2DH12_getALLmG(&sensor_values.accX, &sensor_values.accY, &sensor_values.accZ);    
@@ -184,7 +184,7 @@ static void readData(void)
     pack[0] = sensor_values.format;
     pack[1] = sensor_values.humidity;
     pack[2] = (sensor_values.temperature)>>8;
-    pack[3] = (sensor_values.temperature)&0xFF;
+    pack[3] = raw_t&0xFF;//Take decimals
     pack[4] = (sensor_values.pressure)>>8;
     pack[5] = (sensor_values.pressure)&0xFF;
      

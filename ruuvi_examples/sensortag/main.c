@@ -203,6 +203,7 @@ static void readData(void)
 static void updateAdvertisement(void)
 {
     //Update values always
+    NRF_LOG_INFO("Updating ");
     bluetooth_advertise_data(data_buffer, ENCODED_DATA_LENGTH);
     NRF_LOG_DEBUG("Updated BLE Data");
 }

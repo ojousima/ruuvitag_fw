@@ -1,12 +1,12 @@
-PROJECT_NAME     := weather_station_ruuvitag-b3_s132
-TARGETS          := weather_station
+PROJECT_NAME     := sensortag_ruuvitag-b3_s132
+TARGETS          := sensortag
 OUTPUT_DIRECTORY := _build
 
 SDK_ROOT := ../../../../../nRF5_SDK_12.2.0_f012efa
 PROJ_DIR := ../../..
 
-$(OUTPUT_DIRECTORY)/weather_station.out: \
-  LINKER_SCRIPT  := weather_station.ld
+$(OUTPUT_DIRECTORY)/sensortag.out: \
+  LINKER_SCRIPT  := sensortag.ld
 # Source files common to all targets
 SRC_FILES += \
   ../init.c \
@@ -21,6 +21,7 @@ SRC_FILES += \
   $(PROJ_DIR)/main.c \
   $(SDK_ROOT)/components/libraries/button/app_button.c \
   $(SDK_ROOT)/components/ble/common/ble_advdata.c \
+  $(SDK_ROOT)/components/ble/ble_advertising/ble_advertising.c \
   $(SDK_ROOT)/components/ble/common/ble_conn_params.c \
   $(SDK_ROOT)/components/ble/common/ble_srv_common.c \
   $(SDK_ROOT)/components/drivers_nrf/clock/nrf_drv_clock.c \
@@ -30,6 +31,7 @@ SRC_FILES += \
   $(SDK_ROOT)/components/drivers_nrf/spi_master/nrf_drv_spi.c \
   $(SDK_ROOT)/components/drivers_nrf/timer/nrf_drv_timer.c \
   $(SDK_ROOT)/components/drivers_nrf/uart/nrf_drv_uart.c \
+  $(SDK_ROOT)/components/libraries/fstorage/fstorage.c \
   $(SDK_ROOT)/components/libraries/fifo/app_fifo.c \
   $(SDK_ROOT)/components/libraries/hardfault/hardfault_implementation.c \
   $(SDK_ROOT)/components/libraries/log/src/nrf_log_backend_serial.c \
@@ -238,12 +240,12 @@ LDFLAGS += --specs=nano.specs -lc -lnosys
 
 .PHONY: $(TARGETS) default all clean help flash  flash_softdevice
 # Default target - first one defined
-default: weather_station
+default: sensortag
 
 # Print all targets that can be built
 help:
 	@echo following targets are available:
-	@echo 	weather_station
+	@echo 	sensortag
 	@echo 	flash_softdevice
 
 TEMPLATE_PATH := $(SDK_ROOT)/components/toolchain/gcc
@@ -253,13 +255,13 @@ $(foreach target, $(TARGETS), $(call define_target, $(target)))
 -include $(foreach target, $(TARGETS), $($(target)_dependencies))
 
 # Flash the program
-flash: $(OUTPUT_DIRECTORY)/weather_station.hex
+flash: $(OUTPUT_DIRECTORY)/sensortag.hex
 	@echo Flashing: $<
 	nrfjprog --program $< -f nrf52 --sectorerase
 	nrfjprog --reset -f nrf52
 # Flash softdevice
 flash_softdevice:
-	@echo Flashing: s132_nrf52_3.0.0_softdevice.hex
-	nrfjprog --program $(SDK_ROOT)/components/softdevice/s132/hex/s132_nrf52_3.0.0_softdevice.hex -f nrf52 --chiperase 
+	@echo Flashing: s132_nrf52_3.1.0_softdevice.hex
+	nrfjprog --program $(SDK_ROOT)/components/softdevice/s132/hex/s132_nrf52_3.1.0_softdevice.hex -f nrf52 --chiperase 
 	nrfjprog --reset -f nrf52
 

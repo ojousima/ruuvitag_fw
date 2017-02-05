@@ -38,8 +38,9 @@
 // Eddystone URL data
 #define APP_EDDYSTONE_URL_FRAME_TYPE    0x10                              /**< URL Frame type is fixed at 0x10. */
 #define APP_EDDYSTONE_URL_SCHEME        0x03                              /**< 0x03 = "https:" URL prefix scheme according to specification. */
-#define APP_EDDYSTONE_URL_BASE          'r','/' /**< "nordicsemi.com". Last byte suffix 0x00 = ".com" according to specification. */
-#define APP_EDDYSTONE_URL_BASE_LENGTH    2                                 
+#define APP_EDDYSTONE_URL_BASE          'r','/'
+#define APP_EDDYSTONE_URL_BASE_LENGTH   2
+#define EDDYSTONE_URL_MAX_LENGTH        17                                /**< Specification */
 // Eddystone TLM data 
 //#define APP_EDDYSTONE_TLM_FRAME_TYPE    0x20                              /**< TLM frame type is fixed at 0x20. */
 //#define APP_EDDYSTONE_TLM_VERSION       0x00                              /**< TLM version might change in the future to accommodate other data according to specification. */

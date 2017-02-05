@@ -17,6 +17,25 @@
  */
 
 #include "bluetooth_core.h"
+#include "ble_advdata.h"
+#include "ble_advertising.h"
+
+#define NRF_LOG_MODULE_NAME "BLE_CORE"
+#include "nrf_log.h"
+#include "nrf_log_ctrl.h"
+
+#ifndef CENTRAL_LINK_COUNT
+    #error "Please define CENTRAL_LINK_COUNT in bluetooth_config.h"
+#endif
+#ifndef PERIPHERAL_LINK_COUNT
+    #error "Please define PERIPHERAL_LINK_COUNT in bluetooth_config.h"
+#endif
+#ifndef PERIPHERAL_LINK_COUNT
+    #error "Please define PERIPHERAL_LINK_COUNT in bluetooth_config.h"
+#endif
+#ifndef BLE_COMPANY_IDENTIFIER
+    #error "Please define BLE_COMPANY_IDENTIFIER in bluetooth_config.h"
+#endif
 
 uint32_t ble_stack_init(void)
 {
@@ -52,7 +71,61 @@ uint32_t ble_stack_init(void)
  */
 uint32_t ble_tx_power_set(int8_t power)
 {
-    uint32_t err_code = sd_ble_gap_tx_power_set(BLE_TX_POWER);
+    uint32_t err_code = sd_ble_gap_tx_power_set(power);
     APP_ERROR_CHECK(err_code);
     return err_code;
 }
+
+/**@brief Function for advertising data. 
+ *
+ * @details Initializes the BLE advertisement with given data as manufacturer specific data.
+ * Companyt ID is included by default and doesn't need to be included.  
+ *
+ * @param data pointer to data to advertise, maximum length 24 bytes
+ * @param length length of data to advertise
+ *
+ * @return error code from BLE stack initialization, NRF_SUCCESS if init was ok
+ */
+uint32_t bluetooth_advertise_data(uint8_t *data, uint8_t length)
+{
+    uint32_t      err_code;
+    ble_advdata_t advdata;
+    uint8_t       flags = BLE_GAP_ADV_FLAGS_LE_ONLY_GENERAL_DISC_MODE;
+    
+    // Variables used for manufacturer specific data
+    ble_advdata_manuf_data_t adv_manuf_data;
+    uint8_array_t            adv_manuf_data_array;
+    uint8_t                  adv_manuf_data_data[2];
+
+    // Build and set advertising data
+    memset(&advdata, 0, sizeof(advdata));
+    
+    advdata.name_type               = BLE_ADVDATA_FULL_NAME;
+    advdata.include_appearance      = false;
+    advdata.flags                   = flags;
+
+    
+    // Configuration of manufacturer specific data
+    adv_manuf_data_data[0] = 0x12;
+    adv_manuf_data_data[1] = 0x13;
+    
+    adv_manuf_data_array.p_data = adv_manuf_data_data;
+    adv_manuf_data_array.size = 2;
+    
+    adv_manuf_data.company_identifier = BLE_COMPANY_IDENTIFIER;
+    adv_manuf_data.data = adv_manuf_data_array;
+    
+    advdata.p_manuf_specific_data = &adv_manuf_data;
+    // ---------------------------------------------
+    
+    err_code = ble_advertising_init(&advdata, NULL, NULL, NULL, NULL);
+    APP_ERROR_CHECK(err_code);
+
+    err_code = ble_advertising_start(BLE_ADV_MODE_FAST);
+    APP_ERROR_CHECK(err_code);
+
+    return err_code;
+    
+}
+
+

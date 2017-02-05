@@ -32,4 +32,16 @@ uint32_t ble_stack_init(void);
  */
 uint32_t ble_tx_power_set(int8_t power);
 
+/**@brief Function for advertising data. 
+ *
+ * @details Initializes the BLE advertisement with given data as manufacturer specific data.
+ * Companyt ID is included by default and doesn't need to be included.  
+ *
+ * @param data pointer to data to advertise, maximum length 24 bytes
+ * @param length length of data to advertise
+ *
+ * @return error code from BLE stack initialization, NRF_SUCCESS if init was ok
+ */
+uint32_t bluetooth_advertise_data(uint8_t *data, uint8_t length);
+
 #endif

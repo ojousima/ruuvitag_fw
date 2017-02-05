@@ -13,6 +13,7 @@
 #ifndef BLUETOOTH_CONFIG_H
 #define BLUETOOTH_CONFIG_H 
 
+#define BLE_COMPANY_IDENTIFIER          0xFFFF                            /**< Test and development **/
 #define IS_SRVC_CHANGED_CHARACT_PRESENT 0                                 /**< Include the service changed characteristic. If not enabled, the server's database cannot be changed for the lifetime of the device. */
 
 #define CENTRAL_LINK_COUNT              0                                 /**< Number of central links used by the application. When changing this number remember to adjust the RAM settings*/

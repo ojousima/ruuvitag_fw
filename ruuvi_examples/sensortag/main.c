@@ -33,6 +33,8 @@
 #include "app_timer_appsh.h"
 #include "nrf_drv_clock.h"
 #include "nrf_gpio.h"
+
+#define NRF_LOG_MODULE_NAME "MAIN"
 #include "nrf_log.h"
 #include "nrf_log_ctrl.h"
 
@@ -61,13 +63,16 @@
 //Constants
 #define DEAD_BEEF                       0xDEADBEEF                        /**< Value used as error code on stack dump, can be used to identify stack location on stack unwind. */
 /*
-0:   uint8_t     format;          // (0x02 = realtime sensor readings base64)
+0:   uint8_t     format;          // (0x03 = realtime sensor readings base64)
 1:   uint8_t     humidity;        // one lsb is 0.5%
 2-3: uint16_t    temperature;     // Signed 8.8 fixed-point notation.
 4-5: uint16_t    pressure;        // (-50kPa)
+6-7:   int16_t   acceleration_x;  // mg
+8-9:   int16_t   acceleration_y;  // mg
+10-11: int16_t   acceleration_z;  // mg
 */
-#define SENSOR_TAG_URL_FORMAT           0x03				  /**< Base64, includes acceleration */
-#define ENCODED_DATA_LENGTH             12                                /* 72 bits * (4 / 3) / 8 */
+#define SENSOR_TAG_DATA_FORMAT           0x03				  /**< Base64, includes acceleration */
+#define ENCODED_DATA_LENGTH             12                               /* 12 bytes  */
 
 //Timers
 #define APP_TIMER_PRESCALER             RUUVITAG_APP_TIMER_PRESCALER      /**< Value of the RTC1 PRESCALER register. */
@@ -88,9 +93,7 @@ static bool application_started = false;
 
 //flag for analysing sensor data
 static volatile bool startRead = false;
-static char url_buffer[16] = {'r', 'u', 'u', '.', 'v', 'i', '/', '#'};
-// BASE64
-char buffer_base64_out [16] = {0};
+static uint8_t data_buffer[ENCODED_DATA_LENGTH] = {0};
 
 /**@brief Function for doing power management.
 
@@ -140,7 +143,6 @@ uint16_t    pressure;       // Pascals (pa)
 int16_t     accX;           // Milli-g (mg)
 int16_t     accY;
 int16_t     accZ;
-uint32_t    id;             // pseudo-random id 
 }ruuvi_sensor_t;
 
 static ruuvi_sensor_t sensor_values;
@@ -166,8 +168,7 @@ static void readData(void)
     */
     //Convert raw values to ruu.vi specification
     //Round values: 1 deg C, 1 hPa, 1% RH 
-    sensor_values.id = NRF_FICR->DEVICEID[0];
-    sensor_values.format = SENSOR_TAG_URL_FORMAT;
+    sensor_values.format = SENSOR_TAG_DATA_FORMAT;
     sensor_values.temperature = (raw_t < 0) ? 0x8000 : 0x0000; //Sign bit
     if(raw_t < 0) raw_t = 0-raw_t; // disrecard sign
     sensor_values.temperature |= (((raw_t * 256) / 100));//raw_t is 8:8 signed fixed point, Scale up to next byte, Drop decimals. 
@@ -176,34 +177,34 @@ static void readData(void)
     //sensor_values.humidity <<= 2; //sensor_values.humidity = (uint8_t)((raw_h/1024) * 2);
 
     // Get accelerometer data
-    LIS2DH12_getALLmG(&sensor_values.accX, &sensor_values.accY, &sensor_values.accZ);    
+    int32_t accx, accy, accz;
+    LIS2DH12_getALLmG(&accx, &accy, &accz);    
+    sensor_values.accX = accx;
+    sensor_values.accY = accy;
+    sensor_values.accZ = accz;
 
 
     //serialize values into a string
-    char pack[6] = {0};
-    pack[0] = sensor_values.format;
-    pack[1] = sensor_values.humidity;
-    pack[2] = (sensor_values.temperature)>>8;
-    pack[3] = raw_t&0xFF;//Take decimals
-    pack[4] = (sensor_values.pressure)>>8;
-    pack[5] = (sensor_values.pressure)&0xFF;
-     
-    /// We've got 18-8=10 characters available. Encoding 48 bits using Base64 produces max 8 chars.
-    memset(&buffer_base64_out, 0, sizeof(buffer_base64_out)); 
-    base64encode(pack, sizeof(pack), buffer_base64_out, ENCODED_DATA_LENGTH);
+    data_buffer[0] = sensor_values.format;
+    data_buffer[1] = sensor_values.humidity;
+    data_buffer[2] = (sensor_values.temperature)>>8;
+    data_buffer[3] = raw_t&0xFF;//Take decimals
+    data_buffer[4] = (sensor_values.pressure)>>8;
+    data_buffer[5] = (sensor_values.pressure)&0xFF;
+    data_buffer[6] = (sensor_values.accX)>>8;
+    data_buffer[7] = (sensor_values.accX)&0xFF;
+    data_buffer[8] = (sensor_values.accY)>>9;
+    data_buffer[9] = (sensor_values.accY)&0xFF;
+    data_buffer[10] = (sensor_values.accZ)>>8;
+    data_buffer[11] = (sensor_values.accZ)&0xFF;
 
-    // Fill the URL buffer. Eddystone config contains frame type, RSSI and URL scheme.
-    url_buffer[0] = 0x72; // r
-    url_buffer[1] = 0x2F; // /
-    url_buffer[2] = 0x23; // #      
-    memcpy(&url_buffer[APP_EDDYSTONE_URL_BASE_LENGTH], &buffer_base64_out, ENCODED_DATA_LENGTH);
 }
 
 static void updateAdvertisement(void)
 {
     //Update values always
-    eddystone_advertise_url(url_buffer, APP_EDDYSTONE_URL_BASE_LENGTH + ENCODED_DATA_LENGTH);
-    NRF_LOG_DEBUG("Updated eddystone URL");
+    bluetooth_advertise_data(data_buffer, ENCODED_DATA_LENGTH);
+    NRF_LOG_DEBUG("Updated BLE Data");
 }
 
 /**
@@ -213,11 +214,12 @@ int main(void)
 {
     uint8_t init_status = 0; // counter, gets incremented by each failed init. It Is 0 in the end if init was ok.
     //setup leds. LEDs are active low, so setting high them turns leds off.
-    init_status += init_leds(); //INIT leds first and turn RED on
-    nrf_gpio_pin_clear(LED_RED);//If INIT fails at later stage, RED will stay lit.
 
     // Initialize log
     init_status += init_log();
+
+    init_status += init_leds(); //INIT leds first and turn RED on
+    nrf_gpio_pin_clear(LED_RED);//If INIT fails at later stage, RED will stay lit.
 
     // Initialize buttons
     init_status += init_buttons();
@@ -245,7 +247,7 @@ int main(void)
     application_started = true; //set flag
 	
     //start accelerometer
-    Lis2dh12RetVal = LIS2DH12_init(LIS2DH12_POWER_LOW, LIS2DH12_SCALE2G, NULL);
+    LIS2DH12_init(LIS2DH12_POWER_LOW, LIS2DH12_SCALE2G, NULL);
 
     //setup BME280
     bme280_set_oversampling_hum(BME280_OVERSAMPLING_1);

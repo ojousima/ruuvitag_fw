@@ -36,6 +36,13 @@
 #ifndef BLE_COMPANY_IDENTIFIER
     #error "Please define BLE_COMPANY_IDENTIFIER in bluetooth_config.h"
 #endif
+#ifndef APP_CFG_NON_CONN_ADV_INTERVAL_MS
+    #error "Please define APP_CFG_NON_CONN_ADV_INTERVAL_MS in bluetooth_config.h"
+#endif
+#ifndef APP_CFG_NON_CONN_ADV_TIMEOUT
+    #error "APP_CFG_NON_CONN_ADV_TIMEOUT in bluetooth_config.h"
+#endif
+
 
 uint32_t ble_stack_init(void)
 {
@@ -105,17 +112,17 @@ uint32_t bluetooth_advertise_data(uint8_t *data, uint8_t length)
 
 
     // Initialize advertising parameters (used when starting advertising).
-    uint8_t *m_beacon_info = malloc(2 + length);                   /**< Information advertised by the Beacon. */
+    uint8_t *m_beacon_info = malloc(length);                   /**< Information advertised by the Beacon. */
 
-    m_beacon_info[0] =      0x02,                // Manufacturer specific information. Specifies the device type in this
+    //m_beacon_info[0] =      0x02,                // Manufacturer specific information. Specifies the device type in this
                                                  // implementation.
-    m_beacon_info[1] =      length,              // Manufacturer specific information. Specifies the length of the
+    //m_beacon_info[1] =      length,              // Manufacturer specific information. Specifies the length of the
                                                  // manufacturer specific data in this implementation.
-    memcpy(&m_beacon_info[2], data, length);      // copy rest of data to broadcast
+    memcpy(m_beacon_info, data, length);      // copy rest of data to broadcast
 
     manuf_specific_data.company_identifier = BLE_COMPANY_IDENTIFIER;
     manuf_specific_data.data.p_data = m_beacon_info;
-    manuf_specific_data.data.size   = 2 + length;
+    manuf_specific_data.data.size   =  length;
 
     err_code = ble_advdata_set(&advdata, NULL);
     APP_ERROR_CHECK(err_code);
@@ -128,7 +135,7 @@ uint32_t bluetooth_advertise_data(uint8_t *data, uint8_t length)
     m_adv_params.type        = BLE_GAP_ADV_TYPE_ADV_NONCONN_IND;
     m_adv_params.p_peer_addr = NULL;                             // Undirected advertisement.
     m_adv_params.fp          = BLE_GAP_ADV_FP_ANY;
-    m_adv_params.interval    = NON_CONNECTABLE_ADV_INTERVAL;
+    m_adv_params.interval    = APP_CFG_NON_CONN_ADV_INTERVAL_MS;
     m_adv_params.timeout     = APP_CFG_NON_CONN_ADV_TIMEOUT;
 
     err_code = sd_ble_gap_adv_start(&m_adv_params);

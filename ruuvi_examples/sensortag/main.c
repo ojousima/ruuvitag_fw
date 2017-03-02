@@ -44,6 +44,7 @@
 //Drivers
 #include "LIS2DH12.h"
 #include "bme280.h"
+#include "battery_voltage.h"
 
 //Libraries
 #include "base64.h"
@@ -70,9 +71,10 @@
 6-7:   int16_t   acceleration_x;  // mg
 8-9:   int16_t   acceleration_y;  // mg
 10-11: int16_t   acceleration_z;  // mg
+12-13: int16_t   vbat;            // mv
 */
 #define SENSOR_TAG_DATA_FORMAT           0x03				  /**< Base64, includes acceleration */
-#define ENCODED_DATA_LENGTH             12                               /* 12 bytes  */
+#define ENCODED_DATA_LENGTH              14                               /* 14 bytes  */
 
 //Timers
 #define APP_TIMER_PRESCALER             RUUVITAG_APP_TIMER_PRESCALER      /**< Value of the RTC1 PRESCALER register. */
@@ -103,33 +105,25 @@ static void power_manage(void)
 {
     if(1 == nrf_gpio_pin_read(BUTTON_1)) //leave led on button press
     {
-        nrf_gpio_pin_set(LED_GREEN); 
+        nrf_gpio_pin_set(LED_GREEN);     //This turns led off
     }
     /* Clear exceptions and PendingIRQ from the FPU unit */
     //__set_FPSCR(__get_FPSCR()  & ~(FPU_EXCEPTION_MASK));      
     //(void) __get_FPSCR();
     //NVIC_ClearPendingIRQ(FPU_IRQn);
-    uint32_t err_code = sd_app_evt_wait();
-    APP_ERROR_CHECK(err_code);
+
+    uint32_t err_code = sd_app_evt_wait(); //Actual sleep happens here
+    APP_ERROR_CHECK(err_code);             //Reset on error
+
     if(application_started)
     {
-        nrf_gpio_pin_clear(LED_GREEN); 
+        nrf_gpio_pin_clear(LED_GREEN);     //Turn on led to signal activity
     }
 }
 
 // Timeout handler for the repeated timer
 static void main_timer_handler(void * p_context)
 {
-    static uint32_t counter = 0; //how many loops application has waited to start?
-    if(!application_started)
-    {
-        counter++;
-    }
-
-    if((MAIN_BACK_TO_SLEEP_TIME / MAIN_LOOP_INTERVAL) <= counter) 
-    {
-        sd_power_system_off(); // Program is reset upon leaving OFF.
-    }
     startRead = true;
 }
 
@@ -143,6 +137,7 @@ uint16_t    pressure;       // Pascals (pa)
 int16_t     accX;           // Milli-g (mg)
 int16_t     accY;
 int16_t     accZ;
+uint16_t    vbat;           // mv
 }ruuvi_sensor_t;
 
 static ruuvi_sensor_t sensor_values;
@@ -158,8 +153,6 @@ static void readData(void)
     uint32_t raw_h = bme280_get_humidity();
    
     NRF_LOG_DEBUG("temperature: %d, pressure: %d, humidity: %d", raw_t, raw_p, raw_h);
-
-
     /*
     0:   uint8_t     format;          // (0x02 = realtime sensor readings base64)
     1:   uint8_t     humidity;        // one lsb is 0.5%
@@ -172,10 +165,9 @@ static void readData(void)
     sensor_values.temperature = (raw_t < 0) ? 0x8000 : 0x0000; //Sign bit
     if(raw_t < 0) raw_t = 0-raw_t; // disrecard sign
     sensor_values.temperature |= (((raw_t / 100) << 8));//raw_t is 2:2 signed fixed point in base-10, Drop decimals, scale up to next byte.
-    sensor_values.temperature |= (raw_t % 100) << 8;    //take decimals.
+    sensor_values.temperature |= (raw_t % 100);         //take decimals.
     sensor_values.pressure = (uint16_t)((raw_p >> 8) - 50000); //Scale into pa, Shift by -50000 pa as per Ruu.vi interface.
     sensor_values.humidity = (uint8_t)(raw_h >> 9); 
-    //sensor_values.humidity <<= 2; //sensor_values.humidity = (uint8_t)((raw_h/1024) * 2);
 
     // Get accelerometer data
     int32_t accx, accy, accz;
@@ -184,7 +176,12 @@ static void readData(void)
     sensor_values.accY = accy;
     sensor_values.accZ = accz;
 
+    //Get battery voltage
+    sensor_values.vbat = getBattery();
+}
 
+static void parseSensorDataFormat(void)
+{
     //serialize values into a string
     data_buffer[0] = sensor_values.format;
     data_buffer[1] = sensor_values.humidity;
@@ -194,11 +191,12 @@ static void readData(void)
     data_buffer[5] = (sensor_values.pressure)&0xFF;
     data_buffer[6] = (sensor_values.accX)>>8;
     data_buffer[7] = (sensor_values.accX)&0xFF;
-    data_buffer[8] = (sensor_values.accY)>>9;
+    data_buffer[8] = (sensor_values.accY)>>8;
     data_buffer[9] = (sensor_values.accY)&0xFF;
     data_buffer[10] = (sensor_values.accZ)>>8;
     data_buffer[11] = (sensor_values.accZ)&0xFF;
-
+    data_buffer[12] = (sensor_values.vbat)>>8;
+    data_buffer[13] = (sensor_values.vbat)&0xFF;
 }
 
 static void updateAdvertisement(void)
@@ -232,6 +230,9 @@ int main(void)
 
     // Initialize the application timer module.
     init_status += init_timer(main_timer_id, MAIN_LOOP_INTERVAL, main_timer_handler);
+
+    // Initialize battery monitor
+    init_status += init_bmon();
 
     //Initialize BME 280 and lis2dh12
     init_status += init_sensors();
@@ -274,6 +275,7 @@ int main(void)
          {
              startRead = false;
              readData();
+             parseSensorDataFormat();
              bme280_set_mode(BME280_MODE_FORCED); //Start another measurement for the next time
              updateAdvertisement();
          }

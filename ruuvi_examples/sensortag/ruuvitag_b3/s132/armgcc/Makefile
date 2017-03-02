@@ -11,6 +11,7 @@ $(OUTPUT_DIRECTORY)/sensortag.out: \
 SRC_FILES += \
   ../init.c \
   $(PROJ_DIR)/../../bsp/bsp.c \
+  $(PROJ_DIR)/../../drivers/battery/battery_voltage_saadc.c \
   $(PROJ_DIR)/../../drivers/bme280/bme280.c \
   $(PROJ_DIR)/../../drivers/LIS2DH12/LIS2DH12.c \
   $(PROJ_DIR)/../../drivers/spi/spi.c \
@@ -28,6 +29,8 @@ SRC_FILES += \
   $(SDK_ROOT)/components/drivers_nrf/clock/nrf_drv_clock.c \
   $(SDK_ROOT)/components/drivers_nrf/common/nrf_drv_common.c \
   $(SDK_ROOT)/components/drivers_nrf/gpiote/nrf_drv_gpiote.c \
+  $(SDK_ROOT)/components/drivers_nrf/saadc/nrf_drv_saadc.c \
+  $(SDK_ROOT)/components/drivers_nrf/hal/nrf_saadc.c \
   $(SDK_ROOT)/components/drivers_nrf/spi_master/nrf_drv_spi.c \
   $(SDK_ROOT)/components/drivers_nrf/timer/nrf_drv_timer.c \
   $(SDK_ROOT)/components/drivers_nrf/uart/nrf_drv_uart.c \
@@ -57,6 +60,7 @@ INC_FOLDERS += \
    ../ \
    ../config \
   $(PROJ_DIR)/../../bsp \
+  $(PROJ_DIR)/../../drivers/battery/ \
   $(PROJ_DIR)/../../drivers/bme280 \
   $(PROJ_DIR)/../../drivers/LIS2DH12 \
   $(PROJ_DIR)/../../drivers/spi/ \

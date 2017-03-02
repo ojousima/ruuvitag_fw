@@ -1,4 +1,5 @@
 #include "init.h"
+#include "battery_voltage.h"
 
 /**
  * Initialize logging
@@ -44,8 +45,6 @@ uint8_t init_ble(void)
     err_code =  ble_stack_init();
     APP_ERROR_CHECK(err_code);
 
-    
-       
     NRF_LOG_INFO("BLE Stack init\r\n");
     return (NRF_SUCCESS == err_code) ? 0 : 1;
 }
@@ -115,6 +114,12 @@ uint8_t init_buttons(void)
     nrf_gpio_cfg_sense_input(BUTTON_1,
                              BUTTON_PULL,
                              NRF_GPIO_PIN_SENSE_LOW);
+    return 0; // Cannot fail under any reasonable circumstance
+}
+
+uint8_t init_bmon()
+{
+    battery_voltage_init();
     return 0; // Cannot fail under any reasonable circumstance
 }
 

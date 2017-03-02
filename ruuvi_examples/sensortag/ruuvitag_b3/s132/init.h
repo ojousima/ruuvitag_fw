@@ -111,6 +111,11 @@ uint8_t init_leds(void);
 uint8_t init_buttons(void);
 
 /**
+ *  Init battery voltage monitoring
+ *
+ */
+uint8_t init_bmon(void);
+/**
  * Initialize sensors
  *
  * This function initializes the sensor drivers.

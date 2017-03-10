@@ -32,8 +32,10 @@
 
 
 // BLE CONFIGS
-#define APP_DEVICE_NAME                     "RuuviTag"                           //!< Advertised device name in the scan response when in connectable mode.
-#define IS_SRVC_CHANGED_CHARACT_PRESENT     0                                           //!< Information whether the service changed characteristic is available. If it is not enabled, the server's database cannot be changed for the lifetime of the device.
+#define APP_DEVICE_NAME                     "RuuviTag"                                  //!< Advertised device name in the scan response when in connectable mode.
+#define BLE_COMPANY_IDENTIFIER              0x0499                                      /**< Test and development **/
+#define IS_SRVC_CHANGED_CHARACT_PRESENT     1                                           //!< Information whether the service changed characteristic is available. If it is not enabled, the server's database cannot be changed for the lifetime of the device.
+
 #define MAX_ADV_INTERVAL                   (10240)                                      //!< Maximum connection interval (in ms).
 #define MIN_CONN_ADV_INTERVAL              (20)                                         //!< Minimum connection interval (in ms).
 #define MIN_NON_CONN_ADV_INTERVAL          (100)                                        //!< Minimum advertisement interval for non-connectable advertisements (in ms).

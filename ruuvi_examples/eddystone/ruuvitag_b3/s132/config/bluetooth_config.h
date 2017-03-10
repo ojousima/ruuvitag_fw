@@ -32,7 +32,7 @@
 
 
 // BLE CONFIGS
-#define APP_DEVICE_NAME                     "RuuviTag"                                  //!< Advertised device name in the scan response when in connectable mode.
+#define APP_DEVICE_NAME                     "RuuviMod"                                  //!< Advertised device name in the scan response when in connectable mode.
 #define BLE_COMPANY_IDENTIFIER              0x0499                                      /**< Test and development **/
 #define IS_SRVC_CHANGED_CHARACT_PRESENT     1                                           //!< Information whether the service changed characteristic is available. If it is not enabled, the server's database cannot be changed for the lifetime of the device.
 

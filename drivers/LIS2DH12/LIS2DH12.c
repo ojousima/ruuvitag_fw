@@ -21,7 +21,12 @@ For a detailed description see the detailed description in @ref LIS2DH12.h
 #include "app_timer.h"
 #include "bsp.h"
 #include "boards.h"
+#include "app_error.h"
+#include "nrf_drv_gpiote.h"
 
+#include "app_scheduler.h"
+#include "nordic_common.h"
+#include "app_timer_appsh.h"
 
 #include <string.h>
 
@@ -116,11 +121,11 @@ extern LIS2DH12_Ret LIS2DH12_init(LIS2DH12_PowerMode powerMode, LIS2DH12_Scale s
 
     if (LIS2DH12_RET_OK == retVal)
     {
-        /* Set Power Mode */
-        retVal |= LIS2DH12_setPowerMode(powerMode);
-
         /* save Scale, Scale is set together with resolution in setPowerMode (CRTL4) */
         g_scale = scale;
+
+        /* Set Power Mode */
+        retVal |= LIS2DH12_setPowerMode(powerMode);
     }
 
     return retVal;
@@ -142,28 +147,46 @@ extern LIS2DH12_Ret LIS2DH12_setPowerMode(LIS2DH12_PowerMode powerMode)
     /*Enable all axis */
     ctrl1RegVal = LIS2DH_XYZ_EN_MASK;
 
+    switch(g_scale)
+    {
+    case LIS2DH12_SCALE2G:
+      g_mgpb = 1; 
+      break;
+    case LIS2DH12_SCALE4G:
+      g_mgpb = 2; 
+      break;
+    case LIS2DH12_SCALE8G:
+      g_mgpb = 6; 
+      break;
+    case LIS2DH12_SCALE16G:
+      g_mgpb = 12; 
+      break;
+    default:     
+      g_mgpb = 1; 
+      break;
+    }
+
     switch(powerMode)
     {
     case LIS2DH12_POWER_NORMAL:
         ctrl1RegVal |= LIS2DH_ODR_MASK_100HZ;
-        g_mgpb = 4 << g_scale; // 4 bits per mg at normal power/2g, adjust by scaling
+        ctrl4RegVal |= LIS2DH_HR_MASK;
         time_ms = 10U;
         break;
     case LIS2DH12_POWER_LOW:
         ctrl1RegVal |= (LIS2DH_ODR_MASK_1HZ); //Power consumption is same for low-power and normal mode at 1 Hz
-        g_mgpb = 4 << g_scale; // 4 bits per mg at normal power/2g, adjust by scaling
+        g_mgpb <<= 2; 
         time_ms = 1000U;
 
         break;
     case LIS2DH12_POWER_FAST:
         ctrl1RegVal |= (LIS2DH_ODR_MASK_1620HZ | LIS2DH_LPEN_MASK);
-        g_mgpb = 16 << g_scale; // 16 bits per mg at low power/2g, adjust by scaling
+        g_mgpb <<= 4; 
         time_ms = 1;
         break;
     case LIS2DH12_POWER_HIGHRES:
         ctrl1RegVal |= LIS2DH_ODR_MASK_HIGH_RES;
         ctrl4RegVal |= LIS2DH_HR_MASK;
-        g_mgpb = 1 << g_scale; // 1 bits per mg at high power/2g, adjust by scaling
         time_ms = 1;
         break;
     case LIS2DH12_POWER_DOWN:
@@ -211,7 +234,7 @@ extern LIS2DH12_Ret LIS2DH12_getXmG(int32_t* const accX)
         //Scale value, note: values from accelerometer are 16-bit left-justified in all cases. "Extra" LSBs will be noise 
         //Do not bit shift mg as bit shifting negative values is implementation specific operation.
         //Scale 1/1024 to 1 / 1000.
-        *accX = g_sensorData.sensor.x / (16 << (g_scale)) * 1000 / 1024;
+        *accX = g_sensorData.sensor.x / (2 << (g_scale)) * g_mgpb;
     }
 
     return retVal;
@@ -230,7 +253,7 @@ extern LIS2DH12_Ret LIS2DH12_getYmG(int32_t* const accY)
         //Scale value, note: values from accelerometer are 16-bit left-justified in all cases. "Extra" LSBs will be noise 
         //Do not bit shift mg as bit shifting negative values is implementation specific operation.
         //Scale 1/1024 to 1 / 1000.
-        *accY = g_sensorData.sensor.y / (16 << (g_scale)) * 1000 / 1024;
+        *accY = g_sensorData.sensor.y / (2 << (g_scale)) * g_mgpb;
     }
 
     return retVal;
@@ -249,7 +272,8 @@ extern LIS2DH12_Ret LIS2DH12_getZmG(int32_t* const accZ)
         //Scale value, note: values from accelerometer are 16-bit left-justified in all cases. "Extra" LSBs will be noise 
         //Do not bit shift mg as bit shifting negative values is implementation specific operation.
         //Scale 1/1024 to 1 / 1000.
-        *accZ = g_sensorData.sensor.z / (16 << (g_scale)) * 1000 / 1024;
+        NRF_LOG_DEBUG("Raw value: %d\r\n", g_sensorData.sensor.z);
+        *accZ = g_sensorData.sensor.z / (2 << (g_scale)) * g_mgpb;
     }
 
     return retVal;

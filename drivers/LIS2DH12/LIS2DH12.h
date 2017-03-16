@@ -53,6 +53,13 @@ typedef enum{
 	LIS2DH12_SCALE16G = 3		/**< Scale Selection: +/- 16g */
 }LIS2DH12_Scale;
 
+/** Available Resolutions */
+typedef enum{
+	LIS2DH12_RES8BIT = 8,		  /**< 8 extra bits */
+	LIS2DH12_RES10BIT = 6,		/**< 6 extra bits */
+	LIS2DH12_RES12BIT = 4		/**< 4 extra bits */
+}LIS2DH12_Resolution;
+
 /** Data Ready Event Callback Type */
 typedef void (*LIS2DH12_drdy_event_t)(void);
 

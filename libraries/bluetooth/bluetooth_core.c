@@ -116,48 +116,19 @@ uint32_t bluetooth_advertise_data(uint8_t *data, uint8_t length)
     static bool init = false;
     uint32_t      err_code;
     ble_advdata_t advdata;
-    uint8_t       flags = BLE_GAP_ADV_FLAGS_LE_ONLY_GENERAL_DISC_MODE; //BLE_GAP_ADV_FLAG_BR_EDR_NOT_SUPPORTED; TODO define in BLE Config
+    uint8_t       flags = BLE_GAP_ADV_FLAG_BR_EDR_NOT_SUPPORTED;
 
     ble_advdata_manuf_data_t manuf_specific_data;
-
-    manuf_specific_data.company_identifier = APP_COMPANY_IDENTIFIER;
-    manuf_specific_data.data.p_data        = (uint8_t *) m_beacon_info;
-    manuf_specific_data.data.size          = info_size;
 
     // Build and set advertising data.
     memset(&advdata, 0, sizeof(advdata));
 
-    advdata.name_type               = BLE_ADVDATA_FULL_NAME;
-    advdata.include_appearance      = true;
-//    advdata.uuids_complete.uuid_cnt = sizeof(m_adv_uuids) / sizeof(m_adv_uuids[0]);
-//    advdata.uuids_complete.p_uuids  = m_adv_uuids; TODO
-
+    advdata.name_type             = BLE_ADVDATA_NO_NAME;
     advdata.flags                 = flags;
     advdata.p_manuf_specific_data = &manuf_specific_data;
-    
-    ble_adv_modes_config_t options = {0};
-    options.ble_adv_fast_enabled  = true;
-    options.ble_adv_fast_interval = APP_ADV_INTERVAL;
-    options.ble_adv_fast_timeout  = APP_ADV_TIMEOUT_IN_SECONDS;
-    
-    err_code = ble_advertising_init(&advdata, NULL, &options, NULL, NULL);
-    APP_ERROR_CHECK(err_code);
-    
 
-}
 
-/**@brief Function for starting advertising.
- *
- * @param connectable
- * BLE_GAP_ADV_TYPE_ADV_IND         //Connectable, undirected, implemented
- * BLE_GAP_ADV_TYPE_ADV_DIRECT_IND  //Connectable, directed, not implemented
- * BLE_GAP_ADV_TYPE_ADV_SCAN_IND    //Scannable, undirected, not implemented
- * BLE_GAP_ADV_TYPE_ADV_NONCONN_IND //Non-connectable, undirected, implemented
- */
-static ble_gap_adv_params_t m_adv_params;    
-void advertising_start(uint8_t connectable)
-{
-    uint32_t err_code;
+
     // Initialize advertising parameters (used when starting advertising).
     uint8_t *m_beacon_info = malloc(length);                   /**< Information advertised by the Beacon. */
 
@@ -176,25 +147,15 @@ void advertising_start(uint8_t connectable)
 
     if(!init)
     {
-        case BLE_GAP_ADV_TYPE_ADV_NONCONN_IND:
-            m_adv_params.type        = BLE_GAP_ADV_TYPE_ADV_NONCONN_IND;
-            m_adv_params.p_peer_addr = NULL;                             // Undirected advertisement.
-            m_adv_params.fp          = BLE_GAP_ADV_FP_ANY;
-            m_adv_params.interval    = APP_CFG_NON_CONN_ADV_INTERVAL_MS;
-            m_adv_params.timeout     = APP_CFG_NON_CONN_ADV_TIMEOUT;
-            break;
-        case BLE_GAP_ADV_TYPE_ADV_IND:
-            m_adv_params.type        = BLE_GAP_ADV_TYPE_ADV_IND;
-            m_adv_params.p_peer_addr = NULL;                             // Undirected advertisement.
-            m_adv_params.fp          = BLE_GAP_ADV_FP_ANY;
-            m_adv_params.interval    = APP_ADV_INTERVAL;
-            m_adv_params.timeout     = APP_ADV_TIMEOUT_IN_SECONDS;
-            break;            
-        default :
-            NRF_LOG_ERROR("Advertising mode not implemented\r\n");
-            ASSERT(0);
-            break;
-    }<
+    static ble_gap_adv_params_t m_adv_params;
+    memset(&m_adv_params, 0, sizeof(m_adv_params));
+
+    m_adv_params.type        = BLE_GAP_ADV_TYPE_ADV_NONCONN_IND;
+    m_adv_params.p_peer_addr = NULL;                             // Undirected advertisement.
+    m_adv_params.fp          = BLE_GAP_ADV_FP_ANY;
+    m_adv_params.interval    = APP_CFG_NON_CONN_ADV_INTERVAL_MS;
+    m_adv_params.timeout     = APP_CFG_NON_CONN_ADV_TIMEOUT;
+
     err_code = sd_ble_gap_adv_start(&m_adv_params);
     if(NRF_SUCCESS != err_code)
     {
@@ -206,8 +167,4 @@ void advertising_start(uint8_t connectable)
 
     free(m_beacon_info);
 
-    return err_code;
-    
-}
-
-
+    return err_code;}

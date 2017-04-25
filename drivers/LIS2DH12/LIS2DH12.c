@@ -247,8 +247,7 @@ extern LIS2DH12_Ret LIS2DH12_getXmG(int32_t* const accX)
     {
         //Scale value, note: values from accelerometer are 16-bit left-justified in all cases. "Extra" LSBs will be noise 
         //Do not bit shift mg as bit shifting negative values is implementation specific operation.
-        //Scale 1/1024 to 1 / 1000.
-        *accX = g_sensorData[g_dataIndex].sensor.x / (2 << (g_scale)) * g_mgpb;
+        *accX = g_sensorData[g_dataIndex].sensor.x / (16) * g_mgpb;
     }
 
     return retVal;
@@ -266,8 +265,7 @@ extern LIS2DH12_Ret LIS2DH12_getYmG(int32_t* const accY)
     {
         //Scale value, note: values from accelerometer are 16-bit left-justified in all cases. "Extra" LSBs will be noise 
         //Do not bit shift mg as bit shifting negative values is implementation specific operation.
-        //Scale 1/1024 to 1 / 1000.
-        *accY = g_sensorData[g_dataIndex].sensor.y / (2 << (g_scale)) * g_mgpb;
+        *accY = g_sensorData[g_dataIndex].sensor.y / (16) * g_mgpb;
     }
 
     return retVal;
@@ -285,9 +283,8 @@ extern LIS2DH12_Ret LIS2DH12_getZmG(int32_t* const accZ)
     {
         //Scale value, note: values from accelerometer are 16-bit left-justified in all cases. "Extra" LSBs will be noise 
         //Do not bit shift mg as bit shifting negative values is implementation specific operation.
-        //Scale 1/1024 to 1 / 1000.
         NRF_LOG_DEBUG("Raw value: %d\r\n", g_sensorData[g_dataIndex].sensor.z);
-        *accZ = g_sensorData[g_dataIndex].sensor.z / (2 << (g_scale)) * g_mgpb;
+        *accZ = g_sensorData[g_dataIndex].sensor.z / (16) * g_mgpb;
     }
 
     return retVal;
@@ -481,6 +478,11 @@ void timer_lis2dh12_event_handler(void* p_context)
       writeRegister(LIS2DH_CTRL_REG5, 0);
       writeRegister(LIS2DH_CTRL_REG5, LIS2DH_FIFO_EN_MASK);
     }
+    //If FiFo is not used, point to last element
+    else
+    {
+      g_dataIndex = 0;
+    }
 
     /* if read was successfull set data ready */
     if(LIS2DH12_RET_OK == retVal)
@@ -492,6 +494,4 @@ void timer_lis2dh12_event_handler(void* p_context)
         g_fp_drdyCb();
       }
     }    
-    
-
 }

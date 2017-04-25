@@ -39,10 +39,11 @@ typedef enum
 /** Available Power Modes for the LIS2DH12 */
 typedef enum{
 	LIS2DH12_POWER_NORMAL = 0,	/**< Normal Power Mode, 10-bit resoulution, 100Hz, 20uA */
-	LIS2DH12_POWER_LOW,			/**< Low Power Mode, 10-bit resolution, 1Hz, 2uA */
-	LIS2DH12_POWER_FAST,		/**< Low Power Mode, 8-bit resolution, 1620Hz, 100uA */
-	LIS2DH12_POWER_HIGHRES,		/**< High Power Mode, 12-bit resolution, 1344Hz, 185uA  */
-	LIS2DH12_POWER_DOWN			/**< Stop Operation */
+	LIS2DH12_POWER_LOW,			    /**< Low Power Mode, 10-bit resolution, 1Hz, 2uA */
+	LIS2DH12_POWER_FAST,        /**< Low Power Mode, 8-bit resolution, 1620Hz, 100uA */
+	LIS2DH12_POWER_HIGHRES,	    /**< High Power Mode, 12-bit resolution, 1344Hz, 185uA  */
+	LIS2DH12_POWER_BURST,       /**< 25 Hz 12-bit resolution, Stored to FiFo, read at 1 Hz, 6 µA */
+	LIS2DH12_POWER_DOWN         /**< Stop Operation */
 } LIS2DH12_PowerMode;
 
 /** Available Scales */
@@ -52,13 +53,6 @@ typedef enum{
 	LIS2DH12_SCALE8G = 2,		/**< Scale Selection: +/- 8g */
 	LIS2DH12_SCALE16G = 3		/**< Scale Selection: +/- 16g */
 }LIS2DH12_Scale;
-
-/** Available Resolutions */
-typedef enum{
-	LIS2DH12_RES8BIT = 8,		  /**< 8 extra bits */
-	LIS2DH12_RES10BIT = 6,		/**< 6 extra bits */
-	LIS2DH12_RES12BIT = 4		/**< 4 extra bits */
-}LIS2DH12_Resolution;
 
 /** Data Ready Event Callback Type */
 typedef void (*LIS2DH12_drdy_event_t)(void);
@@ -136,7 +130,8 @@ extern LIS2DH12_Ret LIS2DH12_getYmG(int32_t* const accY);
 extern LIS2DH12_Ret LIS2DH12_getZmG(int32_t* const accZ);
 
 /**
- * Return acceleration of all axis
+ * Return acceleration of all axis.
+ * Reads oldest unread element from Fifo / latest sample from accelerometer. Autoincrements index after read.
  *
  * @param[out] accX Acceleration in mG
  * @param[out] accY Acceleration in mG
@@ -147,6 +142,16 @@ extern LIS2DH12_Ret LIS2DH12_getZmG(int32_t* const accZ);
  * @retval LIS2DH12_RET_NULL NULL 	Pointer detected
  */
 extern LIS2DH12_Ret LIS2DH12_getALLmG(int32_t* const accX, int32_t* const accY, int32_t* const accZ);
+
+/**
+ *  Return number of elements waiting in FiFo. Returns 0 if sample in FiFo is latest, I.E. proper way to read FiFo is:
+ *  uint8_t count = UINT8_T_MAX;
+ *  while (count){
+ *    count = LIS2DH12_getFifoDepth();
+ *    LIS2DH12_getAllmG( ... );
+ *  }
+ */
+int8_t LIS2DH12_getFifoDepth(void);
 
 
 #ifdef __cplusplus

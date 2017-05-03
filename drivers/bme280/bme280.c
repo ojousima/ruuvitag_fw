@@ -150,8 +150,6 @@ BME280_Ret bme280_set_mode(enum BME280_MODE mode)
             err_code = app_timer_start(bme280_timer_id, APP_TIMER_TICKS(1000, RUUVITAG_APP_TIMER_PRESCALER), timer_bme280_event_handler);
             APP_ERROR_CHECK(err_code);
             status = bme280_write_reg(BME280REG_CTRL_MEAS, conf);
-            //conf = bme280_read_reg(BME280REG_CTRL_MEAS);
-            //NRF_LOG_DEBUG("Mode: %x\r\n", conf);
             break;
 
         case BME280_MODE_FORCED:
@@ -389,6 +387,6 @@ BME280_Ret bme280_write_reg(uint8_t reg, uint8_t value)
  */
 void timer_bme280_event_handler(void* p_context)
 {
-    //NRF_LOG_INFO("BME\r\n");
     bme280_read_measurements(); //read previous data
+    //TODO: Add callback
 }

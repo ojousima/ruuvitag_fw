@@ -135,6 +135,9 @@ enum BME280_INTERVAL {
 	BME280_STANDBY_1000_MS = 0xA0
 };
 
+/** Data Ready Event Callback Type */
+typedef void (*BME280_drdy_event_t)(void);
+
 BME280_Ret bme280_init();
 BME280_Ret bme280_set_mode(enum BME280_MODE mode);
 BME280_Ret bme280_set_interval(enum BME280_INTERVAL interval);
@@ -143,6 +146,7 @@ BME280_Ret bme280_read_measurements();
 BME280_Ret bme280_set_oversampling_hum(uint8_t os);
 BME280_Ret bme280_set_oversampling_temp(uint8_t os);
 BME280_Ret bme280_set_oversampling_press(uint8_t os);
+BME280_Ret bme280_set_callback(BME280_drdy_event_t cb);
 /**
  * Returns temperature in DegC, resolution is 0.01 DegC.
  * Output value of “2134” equals 21.34 DegC.

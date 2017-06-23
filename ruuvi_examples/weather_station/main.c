@@ -76,15 +76,12 @@ APP_TIMER_DEF(main_timer_id);                                             /** Cr
 
 //milliseconds until main loop timer function is called. Other timers can bring
 //application out of sleep at higher (or lower) interval
-#define MAIN_LOOP_INTERVAL 5000u 
+#define MAIN_LOOP_INTERVAL 330u 
 
 //Payload requires 8 characters
 #define URL_BASE_LENGTH 8
-static char url_buffer[17] = {'r', 'u', 'u', '.', 'v', 'i', '/', '#'};
 static uint8_t data_buffer[18] = { 0 };
 bool model_plus = false; //Flag for sensors available
-bool highres    = false; //Flag for used mode
-bool debounce   = true;
 
 static ruuvi_sensor_t data;
 
@@ -110,53 +107,19 @@ void bsp_evt_handler(bsp_event_t evt)
  */
 static void power_manage(void)
 {
-    if(1 == nrf_gpio_pin_read(BUTTON_1)) //leave led on button press
-    {
-        nrf_gpio_pin_set(LED_GREEN); 
-        nrf_gpio_pin_set(LED_RED);       //Clear both leds before sleep 
-        debounce = true;
-        
-    }
-    else //Change mode on button press
-    {
-      if(debounce){
-        highres = !highres;
-        debounce = false;
-        if(model_plus)
-        {
-          if(highres)
-          {
-            LIS2DH12_setPowerMode(LIS2DH12_POWER_LOW);
-          }
-          else
-          {
-            LIS2DH12_setPowerMode(LIS2DH12_POWER_DOWN);
-          }
-        }
-      }
-      
-    }
+    nrf_gpio_pin_set(LED_RED);
     uint32_t err_code = sd_app_evt_wait();
     APP_ERROR_CHECK(err_code);
 
-    if(highres){  //signal mode by led color
-      nrf_gpio_pin_clear(LED_RED); 
-    }
-    else {
-      nrf_gpio_pin_clear(LED_GREEN);
-    }
+    nrf_gpio_pin_clear(LED_RED); 
+
 }
 
 static void updateAdvertisement(void)
 {
-  if(highres){
+
     bluetooth_advertise_data(data_buffer, sizeof(data_buffer));
-  }
-  else 
-  {
-    eddystone_advertise_url(url_buffer, sizeof(url_buffer));
-    NRF_LOG_INFO("Updated eddystone URL\r\n");
-  }
+
 }
 
 
@@ -208,15 +171,10 @@ void main_timer_handler(void * p_context)
     parseSensorData(&data, raw_t, raw_p, raw_h, vbat, acc);
     NRF_LOG_DEBUG("temperature: %d, pressure: %d, humidity: %d x: %d y: %d z: %d\r\n", raw_t, raw_p, raw_h, acc[0], acc[1], acc[2]);
     NRF_LOG_INFO("VBAT: %d send %d \r\n", vbat, data.vbat);
-    if(highres)
-    {
-      //Prepare bytearray to broadcast
-      encodeToSensorDataFormat(data_buffer, &data);
-    } 
-    else 
-    {
-      encodeToUrlDataFromat(url_buffer, URL_BASE_LENGTH, &data);
-    }
+
+    //Prepare bytearray to broadcast
+    encodeToSensorDataFormat(data_buffer, &data);
+
     updateAdvertisement();
 
 }
@@ -258,7 +216,7 @@ int main(void)
       model_plus = true;
       //init accelerometer if present
       LIS2DH12_init(LIS2DH12_POWER_DOWN, LIS2DH12_SCALE2G, NULL);
-      
+      LIS2DH12_setPowerMode(LIS2DH12_POWER_LOW);
       //setup BME280 if present
       bme280_set_oversampling_hum(BME280_OVERSAMPLING_1);
       //uint8_t conf = bme280_read_reg(BME280REG_CTRL_MEAS);

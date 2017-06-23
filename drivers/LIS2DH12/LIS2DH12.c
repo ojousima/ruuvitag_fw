@@ -145,9 +145,9 @@ extern LIS2DH12_Ret LIS2DH12_setPowerMode(LIS2DH12_PowerMode powerMode)
     switch(powerMode)
     {
     case LIS2DH12_POWER_NORMAL:
-        ctrl1RegVal |= LIS2DH_ODR_MASK_100HZ;
+        ctrl1RegVal |= LIS2DH_ODR_MASK_10HZ;
         g_mgpb = 4 << g_scale; // 4 bits per mg at normal power/2g, adjust by scaling
-        time_ms = 10U;
+        time_ms = 100;//XXX
         break;
     case LIS2DH12_POWER_LOW:
         ctrl1RegVal |= (LIS2DH_ODR_MASK_1HZ); //Power consumption is same for low-power and normal mode at 1 Hz

@@ -76,7 +76,7 @@ APP_TIMER_DEF(main_timer_id);                                             /** Cr
 
 //milliseconds until main loop timer function is called. Other timers can bring
 //application out of sleep at higher (or lower) interval
-#define MAIN_LOOP_INTERVAL 250u 
+#define MAIN_LOOP_INTERVAL 4500u 
 
 //Payload requires 8 characters
 #define URL_BASE_LENGTH 8

@@ -108,6 +108,7 @@ void bsp_evt_handler(bsp_event_t evt)
 static void power_manage(void)
 {
     nrf_gpio_pin_set(LED_RED);
+    nrf_gpio_pin_set(LED_GREEN);
     uint32_t err_code = sd_app_evt_wait();
     APP_ERROR_CHECK(err_code);
 
@@ -234,12 +235,13 @@ int main(void)
       
     //app_sched_execute();
     bluetooth_advertise_data(data_buffer, sizeof(data_buffer));
+    app_sched_execute();
     NRF_LOG_INFO("Advertising init\r\n");  
     
         
 
     //Visually display init status. Hangs if there was an error, waits 3 seconds on success
-    init_blink_status(init_status);
+    //init_blink_status(init_status);
 
     nrf_gpio_pin_set(LED_RED);//Turn RED led off.
 	
@@ -247,7 +249,7 @@ int main(void)
     //LED will be turned off in power_manage
     nrf_gpio_pin_clear(LED_GREEN); 
     //Keep green led on for 3 secs if model plus
-    if(model_plus) nrf_delay_ms(3000);
+    //if(model_plus) nrf_delay_ms(3000);
 
     // Enter main loop.
     for (;; )

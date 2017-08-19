@@ -40,6 +40,7 @@
 #include "iota/iota.h"
 #include "iota/constants.h"
 #include "libiota.h"
+#include "asciiToTrytes.h"
 
 #include  "test_rng.h"
 #include  "test_rtc.h"
@@ -78,15 +79,16 @@ static void power_manage(void)
    APP_ERROR_CHECK(err_code);
 }
 
-/** Blocking BLE TX **/
+/** Blocking BLE TX - TODO refactor to some place else **/
 uint32_t tx_data(uint8_t* chunk, uint8_t length)
 {
-  uint8_t data_array[BLE_NUS_MAX_DATA_LEN] = {0};
+  if(length >  BLE_NUS_MAX_DATA_LEN){ return 1; } //TODO: proper error code
+  uint8_t data_array[ BLE_NUS_MAX_DATA_LEN] = {0};
   uint32_t       err_code;
   memcpy(&data_array, chunk, length);  
   do
   {
-    err_code = ble_nus_string_send(get_nus(), data_array, BLE_NUS_MAX_DATA_LEN);
+    err_code = ble_nus_string_send(get_nus(), data_array, length);
   }while(NRF_SUCCESS != err_code);
   
   return err_code;
@@ -146,17 +148,22 @@ int main(void)
   
   NRF_LOG_INFO("BME280 init status %s\r\n", (uint32_t)ERR_TO_STR(err_code));
   
-  
+  //TODO: accelerometer
   //test_rtc();
   //test_rng();
   //test_environmental();
   NRF_LOG_INFO("Testing mam creation.\r\n");
-  test_mam();
-  NRF_LOG_INFO("Ok, Timing mam creation.\r\n");
-  uint32_t mam_start = millis();
-  test_mam_create_time();
-  NRF_LOG_INFO("Mam creation completed in %d ms\r\n", millis()-mam_start);
-  test_byte_tryte_conversion();
+  for(int ii = 0; ii < 1; ii++)
+  {
+    test_mam();
+    test_byte_tryte_conversion();
+    NRF_LOG_INFO("Round %d\r\n", (uint32_t)ii);
+  }
+  //NRF_LOG_INFO("Ok, Timing mam creation.\r\n");
+  //uint32_t mam_start = millis();
+  //test_mam_create_time();
+  //NRF_LOG_INFO("Mam creation completed in %d ms\r\n", millis()-mam_start);
+  //test_byte_tryte_conversion();
   
   bluetooth_advertising_start();  
   
@@ -181,8 +188,68 @@ int main(void)
 
   //TODO: Test endpoint-communication
 
+  const char seed[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ9ABCDEFGHIJKLMNOPQRSTUVWXYZ9ABCDEFGHIJKLMNOPQRSTUVWXYZ9";
+  size_t start = MAM_START;
+  size_t count = MAM_COUNT;
+  size_t index = MAM_INDEX;
+  size_t next_start = MAM_NEXT_START;
+  size_t next_count = MAM_NEXT_COUNT;
+  size_t security = MAM_SECURITY;
+  static int32_t raw_t  = 0;
+  static uint32_t raw_p = 0;
+  static uint32_t raw_h = 0;
+  err_code = NRF_SUCCESS;
+  uint8_t* txmessage = calloc(60, sizeof(uint8_t));
+  char* trytes = calloc(120, sizeof(uint8_t));
+    
   while(1)
   {
+    if(p_nus->is_notification_enabled)
+    {
+    NRF_LOG_INFO("Sending sensor data over MAM\r\n");
+
+    //First sample
+    err_code |= bme280_set_mode(BME280_MODE_FORCED);
+    nrf_delay_ms(10);
+    //read previous data, start next sample
+    bme280_set_mode(BME280_MODE_FORCED);
+    nrf_delay_ms(10);
+    // Get raw environmental data
+    raw_t = bme280_get_temperature();
+    raw_p = bme280_get_pressure();
+    raw_h = bme280_get_humidity();
+    NRF_LOG_INFO("temperature: %d.%d, pressure: %d, humidity: %d\r\n", raw_t/100, raw_t%100, raw_p>>8, raw_h>>10); //Wrong decimals on negative values.
+
+    char* print = (void*)txmessage;
+    sprintf(print, "{temperature: %d.%d, pressure: %d, humidity: %d}", (int)raw_t/100, (int)raw_t%100, (int)raw_p>>8, (int)raw_h>>10);
+    toTrytes(txmessage, trytes, 60);
+    
+    //Returns dynamically allocated pointer. REMEMBER TO FREE
+    char* result = (char*)mam_create(seed, trytes, start, count, index, next_start, next_count, security);
+    
+    size_t chunk_index = 0;
+    size_t message_length = strlen(result);
+    while(18*chunk_index <= message_length)
+    {
+      uint8_t chunk[20] = {0};
+      chunk[0] = 0xE0;
+      chunk[1] = chunk_index;
+      memcpy(&(chunk[2]), &(result[18*chunk_index]), 18); 
+      tx_data(chunk, 20);
+      chunk_index++;
+    }
+    
+    uint8_t* chunk = calloc(2 + message_length%18, sizeof(uint8_t));
+    chunk[0] = 0xE0;
+    chunk[1] = chunk_index;
+    memcpy(&(chunk[2]), &(result[18*chunk_index]), message_length%18); 
+    tx_data(chunk, 2 + message_length%18);
+    NRF_LOG_INFO("Sent last chunk %d with %d bytes \r\n", (uint32_t)chunk_index, (uint32_t)2 + message_length%18);
+    
+    free(chunk);
+    free(result);
+    }
+    
     power_manage();
     app_sched_execute();
   }

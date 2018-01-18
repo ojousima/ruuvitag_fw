@@ -24,6 +24,7 @@ SRC_FILES += \
   $(PROJ_DIR)/../../drivers/init/init.c \
   $(PROJ_DIR)/../../drivers/lis2dh12/lis2dh12.c \
   $(PROJ_DIR)/../../drivers/lis2dh12/lis2dh12_acceleration_handler.c \
+  $(PROJ_DIR)/../../drivers/nrf_nordic_nfc/nfc.c \
   $(PROJ_DIR)/../../drivers/pwm/pwm.c \
   $(PROJ_DIR)/../../drivers/rng/rng.c \
   $(PROJ_DIR)/../../drivers/rtc/rtc.c \
@@ -61,6 +62,7 @@ SRC_FILES += \
   $(SDK_ROOT)/components/drivers_nrf/clock/nrf_drv_clock.c \
   $(SDK_ROOT)/components/drivers_nrf/common/nrf_drv_common.c \
   $(SDK_ROOT)/components/drivers_nrf/gpiote/nrf_drv_gpiote.c \
+  $(SDK_ROOT)/components/drivers_nrf/rng/nrf_drv_rng.c \
   $(SDK_ROOT)/components/drivers_nrf/rtc/nrf_drv_rtc.c \
   $(SDK_ROOT)/components/drivers_nrf/spi_master/nrf_drv_spi.c \
   $(SDK_ROOT)/components/drivers_nrf/timer/nrf_drv_timer.c \
@@ -86,6 +88,10 @@ SRC_FILES += \
   $(SDK_ROOT)/components/libraries/util/nrf_assert.c \
   $(SDK_ROOT)/components/libraries/util/sdk_errors.c \
   $(SDK_ROOT)/components/libraries/util/sdk_mapped_flags.c \
+  $(SDK_ROOT)/components/nfc/t2t_lib/hal_t2t/hal_nfc_t2t.c \
+  $(SDK_ROOT)/components/nfc/ndef/generic/message/nfc_ndef_msg.c \
+  $(SDK_ROOT)/components/nfc/ndef/generic/record/nfc_ndef_record.c \
+  $(SDK_ROOT)/components/nfc/ndef/text/nfc_text_rec.c \
   $(SDK_ROOT)/components/softdevice/common/softdevice_handler/softdevice_handler.c \
   $(SDK_ROOT)/components/toolchain/gcc/gcc_startup_nrf52.S \
   $(SDK_ROOT)/components/toolchain/system_nrf52.c \
@@ -103,6 +109,7 @@ INC_FOLDERS += \
   $(PROJ_DIR)/../../drivers/bme280 \
   $(PROJ_DIR)/../../drivers/init \
   $(PROJ_DIR)/../../drivers/lis2dh12 \
+  $(PROJ_DIR)/../../drivers/nrf_nordic_nfc \
   $(PROJ_DIR)/../../drivers/nrf_nordic_pininterrupt \
   $(PROJ_DIR)/../../drivers/pwm/ \
   $(PROJ_DIR)/../../drivers/rng/ \
@@ -200,6 +207,12 @@ INC_FOLDERS += \
   $(SDK_ROOT)/components/libraries/twi \
   $(SDK_ROOT)/components/libraries/uart \
   $(SDK_ROOT)/components/libraries/util \
+  $(SDK_ROOT)/components/nfc/t2t_lib/hal_t2t \
+  $(SDK_ROOT)/components/nfc/ndef/text \
+  $(SDK_ROOT)/components/nfc/ndef/generic/message \
+  $(SDK_ROOT)/components/nfc/ndef/generic/record \
+  $(SDK_ROOT)/components/nfc/t2t_lib \
+  $(SDK_ROOT)/components/nfc/ndef/text \
   $(SDK_ROOT)/components/softdevice/common/softdevice_handler \
   $(SDK_ROOT)/components/softdevice/s132/headers \
   $(SDK_ROOT)/components/softdevice/s132/headers/nrf52 \
@@ -211,8 +224,8 @@ INC_FOLDERS += \
 
 # Libraries common to all targets
 LIB_FILES += \
+  $(SDK_ROOT)/components/nfc/t2t_lib/nfc_t2t_lib_gcc.a \
 
-# C flags common to all targets
 CFLAGS += -DNRF52
 CFLAGS += -DBOARD_CUSTOM
 CFLAGS += -DBOARD_RUUVITAG_B

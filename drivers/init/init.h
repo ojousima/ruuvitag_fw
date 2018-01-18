@@ -69,6 +69,17 @@ init_err_code_t init_log(void);
 init_err_code_t init_ble(void);
 
 /**
+ * Initialize NFC driver
+ *  
+ * Puts NFC on standby, ready to transmit ID of the tag.
+ * 
+ * @return 0          Operation successful
+ * @retval 1          Something went wrong
+ *
+ */
+uint8_t init_nfc(void);
+
+/**
  *  Initialize and enable watchdog. After calling this function
  *  watchdog_feed() must be called at interval defined by sdk_config.
  *  If NULL is given as a handler, default handler which prints error

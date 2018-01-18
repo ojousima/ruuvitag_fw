@@ -25,6 +25,7 @@
 #include "bme280_temperature_handler.h"
 #include "lis2dh12.h"
 #include "lis2dh12_acceleration_handler.h"
+#include "nfc.h"
 #include "pin_interrupt.h"
 #include "pwm.h"
 #include "watchdog.h"
@@ -85,6 +86,27 @@ init_err_code_t init_ble(void)
     
     NRF_LOG_DEBUG("BLE Stack init done\r\n");
     return (NRF_SUCCESS == err_code) ? INIT_SUCCESS : INIT_ERR_UNKNOWN;
+}
+
+/**
+ * Initialize NFC driver
+ *  
+ * Puts NFC on standby, ready to transmit ID of the tag.
+ * 
+ * @return 0          Operation successful
+ * @retval 1          Something went wrong
+ *
+ */
+uint8_t init_nfc(void)
+{
+    uint32_t err_code;
+
+    //Enable BLE STACK
+    err_code = nfc_init();
+    APP_ERROR_CHECK(err_code);
+
+    NRF_LOG_INFO("NFC init\r\n");
+    return (NRF_SUCCESS == err_code) ? 0 : 1;
 }
 
 /**

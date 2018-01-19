@@ -17,14 +17,16 @@
 10-11: int16_t   acceleration_z;  // mg
 12-13: int16_t   vbat;            // mv
 */
-#define SENSOR_TAG_DATA_FORMAT          0x03				  /**< raw binary, includes acceleration */
-#define SENSORTAG_ENCODED_DATA_LENGTH   14            /**< 14 bytes  */
+#define SENSOR_TAG_DATA_FORMAT          0x03  /**< raw binary, includes acceleration */
+#define SENSORTAG_ENCODED_DATA_LENGTH   14    /**< 14 bytes  */
 
-#define RAW_FORMAT_2                    0x05          /**< Proposal, please see https://f.ruuvi.com/t/proposed-next-high-precision-data-format/692 */
+#define RAW_FORMAT_2                    0x05  /**< Proposal, please see https://f.ruuvi.com/t/proposed-next-high-precision-data-format/692 */
 #define RAW_2_ENCODED_DATA_LENGTH       24
 
-#define WEATHER_STATION_URL_FORMAT      0x02				  /**< Base64 */
-#define WEATHER_STATION_URL_ID_FORMAT   0x04				  /**< Base64, with ID byte */
+#define SENSOR_TAG_DATA_FORMAT_ENCRYPTED 0x06 /**< raw binary, encrypted */
+
+#define WEATHER_STATION_URL_FORMAT      0x02  /**< Base64 */
+#define WEATHER_STATION_URL_ID_FORMAT   0x04  /**< Base64, with ID byte */
 
 #define EDDYSTONE_URL_MAX_LENGTH 17
 #define URL_PAYLOAD_LENGTH 9
@@ -58,6 +60,13 @@ void parseSensorData(ruuvi_sensor_t* data, int32_t raw_t, uint32_t raw_p, uint32
  *  @param char* data_buffer character array with length of 14 bytes
  */
 void encodeToSensorDataFormat(uint8_t* data_buffer, ruuvi_sensor_t* data);
+
+/**
+ *  Parses sensor values into RuuviTag format and encrypts the data with given key and nonce. 
+ *  @param char* data_buffer character array with length of 21 bytes
+ */
+
+void encodeToCryptedSensorDataFormat(uint8_t* data_buffer, ruuvi_sensor_t* data, const uint8_t* key, const uint8_t* nonce);
 
 /**
  *  Parses sensor values into propesed format. 

@@ -6,6 +6,7 @@
 #include "nrf52_bitfields.h"
 
 #include "base64.h"
+#include "nrf_soc.h"
 
 #define NRF_LOG_MODULE_NAME "SENSORLIB"
 #include "nrf_log.h"
@@ -48,6 +49,85 @@ void parseSensorData(ruuvi_sensor_t* data, int32_t raw_t, uint32_t raw_p, uint32
     data->vbat = vbat;
 
 
+}
+
+/**
+ *  Parses sensor values into RuuviTag format.
+ *  @param char* data_buffer character array with length of 14 bytes
+ */
+
+void encodeToSensorDataFormat(uint8_t* data_buffer, ruuvi_sensor_t* data)
+
+{
+    //serialize values into a string
+    data_buffer[0] = SENSOR_TAG_DATA_FORMAT;
+    data_buffer[1] = data->humidity;
+    data_buffer[2] = (data->temperature)>>8;
+    data_buffer[3] = (data->temperature)&0xFF;
+    data_buffer[4] = (data->pressure)>>8;
+    data_buffer[5] = (data->pressure)&0xFF;
+    data_buffer[6] = (data->accX)>>8;
+    data_buffer[7] = (data->accX)&0xFF;
+    data_buffer[8] = (data->accY)>>8;
+    data_buffer[9] = (data->accY)&0xFF;
+    data_buffer[10] = (data->accZ)>>8;
+    data_buffer[11] = (data->accZ)&0xFF;
+    data_buffer[12] = (data->vbat)>>8;
+    data_buffer[13] = (data->vbat)&0xFF;
+}
+
+/**
+ *  Parses sensor values into RuuviTag format and encrypts the data with given key and nonce. 
+ *  @param char* data_buffer character array with length of 21 bytes
+ */
+
+void encodeToCryptedSensorDataFormat(uint8_t* data_buffer, ruuvi_sensor_t* data, const uint8_t* key, const uint8_t* nonce)
+{
+
+    static nrf_ecb_hal_data_t m_ecb_data;
+
+    uint8_t final_key[SOC_ECB_KEY_LENGTH];
+    memcpy(&final_key[0], key, SOC_ECB_KEY_LENGTH);
+    final_key[0] ^= nonce[0];
+    final_key[1] ^= nonce[1];
+    final_key[2] ^= nonce[2];
+    final_key[3] ^= nonce[3];
+
+    memcpy(&m_ecb_data.key[0], &final_key[0], SOC_ECB_KEY_LENGTH);
+    NRF_LOG_HEXDUMP_INFO(&m_ecb_data.key[0], SOC_ECB_KEY_LENGTH);
+
+    //serialize values into a string
+    data_buffer[0] = SENSOR_TAG_DATA_FORMAT_ENCRYPTED;
+    data_buffer[1] = data->humidity;
+    data_buffer[2] = (data->temperature)>>8;
+    data_buffer[3] = (data->temperature)&0xFF;
+    data_buffer[4] = (data->pressure)>>8;
+    data_buffer[5] = (data->pressure)&0xFF;
+    data_buffer[6] = (data->accX)>>8;
+    data_buffer[7] = (data->accX)&0xFF;
+    data_buffer[8] = (data->accY)>>8;
+    data_buffer[9] = (data->accY)&0xFF;
+    data_buffer[10] = (data->accZ)>>8;
+    data_buffer[11] = (data->accZ)&0xFF;
+    data_buffer[12] = (data->vbat)>>8;
+    data_buffer[13] = (data->vbat)&0xFF;
+    data_buffer[14] = 0;
+    data_buffer[15] = 0;
+    data_buffer[16] = 0;
+    data_buffer[17] = nonce[0];
+    data_buffer[18] = nonce[1];
+    data_buffer[19] = nonce[2];
+    data_buffer[20] = nonce[3];
+    NRF_LOG_HEXDUMP_INFO(nonce, 4);
+    NRF_LOG_HEXDUMP_INFO(final_key, 16);
+
+
+    memcpy(&m_ecb_data.cleartext[0], &data_buffer[1], SOC_ECB_CLEARTEXT_LENGTH);
+
+    sd_ecb_block_encrypt(&m_ecb_data);
+
+    memcpy(&data_buffer[1], &m_ecb_data.ciphertext[0], SOC_ECB_CLEARTEXT_LENGTH);
+    NRF_LOG_HEXDUMP_INFO(&data_buffer[1], 16);
 }
 
 /**

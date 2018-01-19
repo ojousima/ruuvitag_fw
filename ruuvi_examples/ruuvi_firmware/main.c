@@ -78,14 +78,12 @@ APP_TIMER_DEF(main_timer_id);                 // Creates timer id for our progra
 
 // Payload requires 8 characters
 #define URL_BASE_LENGTH 9
-static uint8_t symmetric_key[] = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'};
 static char url_buffer[17] = {0x03, 'r', 'u', 'u', '.', 'v', 'i', '/', '#'};
 static uint8_t data_buffer[24] = { 0 };
 static bool model_plus = false;     // Flag for sensors available
 static bool highres = false;        // Flag for used mode
 static uint64_t debounce = false;   // Flag for avoiding double presses
 static uint16_t acceleration_events = 0;
-static uint8_t* salted_key = &symmetric_key[0];
 
 static ruuvi_sensor_t data;
 
@@ -217,14 +215,11 @@ void main_timer_handler(void * p_context)
     if (highres)
     {
       // Prepare bytearray to broadcast.
-      //bme280_data_t environmental;
-      //environmental.temperature = raw_t;
-      //environmental.humidity = raw_h;
-      //environmental.pressure = raw_p;
-      //encodeToRawFormat5(data_buffer, &environmental, &buffer.sensor, acceleration_events, vbat, BLE_TX_POWER);
-      uint32_t nonce = random();
-      uint8_t* p_nonce = (void*)&nonce;
-      encodeToCryptedSensorDataFormat(data_buffer, &data, salted_key, p_nonce);
+      bme280_data_t environmental;
+      environmental.temperature = raw_t;
+      environmental.humidity = raw_h;
+      environmental.pressure = raw_p;
+      encodeToRawFormat5(data_buffer, &environmental, &buffer.sensor, acceleration_events, vbat, BLE_TX_POWER);
     } 
     else 
     {
@@ -289,25 +284,7 @@ int main(void)
   // Initialize button.
   err_code |= pin_interrupt_enable(BSP_BUTTON_0, NRF_GPIOTE_POLARITY_HITOLO, button_press_handler);
 
-  //Salt key
-  uint8_t salt[8] = {0};
-  uint32_t id0 = NRF_FICR->DEVICEID[0];
-  uint32_t id1 = NRF_FICR->DEVICEID[1];
-  salt[0] = id0 >> 24;
-  salt[1] = id0 >> 16;
-  salt[2] = id0 >> 8;
-  salt[3] = id0 >> 0;
-  salt[4] = id1 >> 24;
-  salt[5] = id1 >> 16;
-  salt[6] = id1 >> 8;
-  salt[7] = id1 >> 0;
-  for(int ii = 0; ii < sizeof(salt); ii++)
-  {
-    //Salt the tail of key.
-    salted_key[sizeof(symmetric_key)-sizeof(salt) + ii] = salted_key[sizeof(symmetric_key)-sizeof(salt) + ii] ^ salt[ii];
-  }
-  NRF_LOG_HEXDUMP_INFO(salted_key, 16);
-  NRF_LOG_HEXDUMP_INFO(salt, 8);
+
 
   // Initialize BME 280 and lis2dh12. Requires timer running.
   if (NRF_SUCCESS == init_sensors())

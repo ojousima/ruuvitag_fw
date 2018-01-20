@@ -86,7 +86,7 @@ void encodeToCryptedSensorDataFormat(uint8_t* data_buffer, ruuvi_sensor_t* data,
     static uint8_t counter = 0;
 
     uint8_t final_key[SOC_ECB_KEY_LENGTH];
-    memcpy(&final_key[0], key, SOC_ECB_KEY_LENGTH)
+    memcpy(&final_key[0], key, SOC_ECB_KEY_LENGTH);
 
     memcpy(&m_ecb_data.key[0], &final_key[0], SOC_ECB_KEY_LENGTH);
     NRF_LOG_HEXDUMP_INFO(&m_ecb_data.key[0], SOC_ECB_KEY_LENGTH);

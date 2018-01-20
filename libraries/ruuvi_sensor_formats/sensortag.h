@@ -66,7 +66,7 @@ void encodeToSensorDataFormat(uint8_t* data_buffer, ruuvi_sensor_t* data);
  *  @param char* data_buffer character array with length of 21 bytes
  */
 
-void encodeToCryptedSensorDataFormat(uint8_t* data_buffer, ruuvi_sensor_t* data, const uint8_t* key, const uint8_t* nonce);
+void encodeToCryptedSensorDataFormat(uint8_t* data_buffer, ruuvi_sensor_t* data, const uint8_t* key);
 
 /**
  *  Parses sensor values into propesed format. 

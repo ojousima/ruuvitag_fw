@@ -12,6 +12,11 @@
 #include "nrf_log.h"
 #include "nrf_log_ctrl.h"
 
+#include "sdk_config.h"
+
+//Do not compile RAM-consumin buffers if they're not used
+#if NFC_HAL_ENABLED
+
 uint8_t m_ndef_msg_buf[256];
 
 
@@ -94,6 +99,8 @@ void nfc_binary_record_set(uint8_t* data, size_t data_length)
 
   //Stop NFC
   nfc_t2t_emulation_stop();
+  // copy data to buffer
+
 
   /// Declare record descriptor by macro - create and initialize an instance of 
   ///   nfc_ndef_record_desc_t.
@@ -162,3 +169,5 @@ void id_record_add(nfc_ndef_msg_desc_t * p_ndef_msg_desc)
                                        &NFC_NDEF_TEXT_RECORD_DESC(id_text_rec));
     APP_ERROR_CHECK(err_code);
 }
+
+#endif

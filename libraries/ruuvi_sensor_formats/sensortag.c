@@ -47,8 +47,6 @@ void parseSensorData(ruuvi_sensor_t* data, int32_t raw_t, uint32_t raw_p, uint32
     data->accZ = acc[2];
     
     data->vbat = vbat;
-
-
 }
 
 /**
@@ -81,17 +79,14 @@ void encodeToSensorDataFormat(uint8_t* data_buffer, ruuvi_sensor_t* data)
  *  @param char* data_buffer character array with length of 21 bytes
  */
 
-void encodeToCryptedSensorDataFormat(uint8_t* data_buffer, ruuvi_sensor_t* data, const uint8_t* key, const uint8_t* nonce)
+void encodeToCryptedSensorDataFormat(uint8_t* data_buffer, ruuvi_sensor_t* data, const uint8_t* key)
 {
 
     static nrf_ecb_hal_data_t m_ecb_data;
+    static uint8_t counter = 0;
 
     uint8_t final_key[SOC_ECB_KEY_LENGTH];
-    memcpy(&final_key[0], key, SOC_ECB_KEY_LENGTH);
-    final_key[0] ^= nonce[0];
-    final_key[1] ^= nonce[1];
-    final_key[2] ^= nonce[2];
-    final_key[3] ^= nonce[3];
+    memcpy(&final_key[0], key, SOC_ECB_KEY_LENGTH)
 
     memcpy(&m_ecb_data.key[0], &final_key[0], SOC_ECB_KEY_LENGTH);
     NRF_LOG_HEXDUMP_INFO(&m_ecb_data.key[0], SOC_ECB_KEY_LENGTH);
@@ -111,23 +106,19 @@ void encodeToCryptedSensorDataFormat(uint8_t* data_buffer, ruuvi_sensor_t* data,
     data_buffer[11] = (data->accZ)&0xFF;
     data_buffer[12] = (data->vbat)>>8;
     data_buffer[13] = (data->vbat)&0xFF;
-    data_buffer[14] = 0;
+    data_buffer[14] = counter++; //Prevent duplicate values from repeating
     data_buffer[15] = 0;
     data_buffer[16] = 0;
-    data_buffer[17] = nonce[0];
-    data_buffer[18] = nonce[1];
-    data_buffer[19] = nonce[2];
-    data_buffer[20] = nonce[3];
-    NRF_LOG_HEXDUMP_INFO(nonce, 4);
-    NRF_LOG_HEXDUMP_INFO(final_key, 16);
-
+    data_buffer[17] = ((NRF_FICR->DEVICEADDR[1]>>8)&0xFF) | 0xC0; //2 MSB must be 11;
+    data_buffer[18] = ((NRF_FICR->DEVICEADDR[1]>>0)&0xFF);
+    data_buffer[19] = ((NRF_FICR->DEVICEADDR[0]>>24)&0xFF);
+    data_buffer[20] = ((NRF_FICR->DEVICEADDR[0]>>16)&0xFF);
+    data_buffer[21] = ((NRF_FICR->DEVICEADDR[0]>>8)&0xFF);
+    data_buffer[22] = ((NRF_FICR->DEVICEADDR[0]>>0)&0xFF);
 
     memcpy(&m_ecb_data.cleartext[0], &data_buffer[1], SOC_ECB_CLEARTEXT_LENGTH);
-
     sd_ecb_block_encrypt(&m_ecb_data);
-
     memcpy(&data_buffer[1], &m_ecb_data.ciphertext[0], SOC_ECB_CLEARTEXT_LENGTH);
-    NRF_LOG_HEXDUMP_INFO(&data_buffer[1], 16);
 }
 
 /**

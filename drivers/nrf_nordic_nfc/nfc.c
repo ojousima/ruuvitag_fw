@@ -80,6 +80,63 @@ uint32_t nfc_init(void)
 }
 
 /**
+ * Update NFC payload with given data. Datr is converted to hex and printed as a string.
+ * https://infocenter.nordicsemi.com/index.jsp?topic=%2Fcom.nordic.infocenter.sdk5.v12.0.0%2Fnfc_ndef_format_dox.html
+ */
+void nfc_binary_record_set(uint8_t* data, size_t data_length)
+{
+  ret_code_t error_code = NRF_SUCCESS;
+  uint32_t length;
+  static uint8_t buffer_for_message[256];
+  static uint8_t buffer_for_record[128];
+
+  //TODO: define max length, return error if exceeded.
+
+  //Stop NFC
+  nfc_t2t_emulation_stop();
+
+  /// Declare record descriptor by macro - create and initialize an instance of 
+  ///   nfc_ndef_record_desc_t.
+  NFC_NDEF_RECORD_BIN_DATA_DEF(binary_record, //NAME
+    0x02, //MEDIA type TNF
+    NULL, // No ID
+    0, //ID len 0
+    NULL, //No type
+    0,    // type length 0
+    buffer_for_record, 
+    sizeof(buffer_for_record)
+  );
+
+  // If required, get the record size to length variable.
+  error_code |= nfc_ndef_record_encode( &NFC_NDEF_RECORD_BIN_DATA(binary_record),
+                                     NDEF_LONE_RECORD,
+                                     NULL,
+                                     &length);
+  // Encode the message to buffer_for_message.
+  //ASSERT(length <= 512); // make sure the message fits into the buffer
+  // Declare message descriptor by macro - create and initialize an instance of 
+  //   nfc_ndef_msg_desc_t and an array of pointers to nfc_ndef_record_desc_t.
+  // The declared message can contain up to 1 records.
+  NFC_NDEF_MSG_DEF(my_message, 1);
+  // Add record_1 and record_2 to the message.
+  // record_1 and record_2 are record descriptors as created in the previous
+  // code example.
+  error_code |= nfc_ndef_msg_record_add( &NFC_NDEF_MSG(my_message), &NFC_NDEF_RECORD_BIN_DATA(binary_record));
+  error_code |= nfc_ndef_msg_encode( &NFC_NDEF_MSG(my_message),
+                                    buffer_for_message,
+                                    &length);
+
+  /* Set created message as the NFC payload */
+  error_code |= nfc_t2t_payload_set(buffer_for_message, sizeof(buffer_for_message));
+  
+  /* Start sensing NFC field */
+  error_code |= nfc_t2t_emulation_start();
+  APP_ERROR_CHECK(error_code);
+}
+
+
+
+/**
  * @brief Function for creating a record.
  */
 void id_record_add(nfc_ndef_msg_desc_t * p_ndef_msg_desc)

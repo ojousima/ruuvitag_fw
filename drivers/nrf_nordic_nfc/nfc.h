@@ -28,7 +28,7 @@ void initial_msg_encode(uint8_t * p_buffer, uint32_t * p_len);
  *
  * @param p_ndef_mmmmmsg_desc pointer to array containing text records.
  */
-void id_record_add(nfc_ndef_msg_desc_t * p_ndef_msg_desc);
+void id_record_add();
 
 /**
  * Update NFC payload with given data. Datr is converted to hex and printed as a string.

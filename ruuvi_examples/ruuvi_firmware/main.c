@@ -79,7 +79,7 @@ APP_TIMER_DEF(main_timer_id);                 // Creates timer id for our progra
 
 // Payload requires 8 characters
 #define URL_BASE_LENGTH 9
-//static uint8_t symmetric_key[] = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'};
+static uint8_t symmetric_key[] = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'};
 static char url_buffer[17] = {0x03, 'r', 'u', 'u', '.', 'v', 'i', '/', '#'};
 static uint8_t data_buffer[24] = { 0 };
 static bool model_plus = false;     // Flag for sensors available
@@ -224,7 +224,7 @@ void main_timer_handler(void * p_context)
       //encodeToRawFormat5(data_buffer, &environmental, &buffer.sensor, acceleration_events, vbat, BLE_TX_POWER);
       encodeToSensorDataFormat(data_buffer, &data);
       nfc_binary_record_set(data_buffer, sizeof(data_buffer));
-      //encodeToCryptedSensorDataFormat(data_buffer, &data, symmetric_key);
+      encodeToCryptedSensorDataFormat(data_buffer, &data, symmetric_key);
     } 
     else 
     {

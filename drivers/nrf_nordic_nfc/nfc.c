@@ -72,7 +72,7 @@ uint32_t nfc_init(void)
     err_code = nfc_t2t_setup(nfc_callback, NULL);
     APP_ERROR_CHECK(err_code);
 
-    id_record_add(&NFC_NDEF_MSG(nfc_msg));
+    id_record_add();
 
     /* Encode welcome message */
     initial_msg_encode(m_ndef_msg_buf, &len);
@@ -97,7 +97,7 @@ void nfc_binary_record_set(uint8_t* data, uint32_t data_length)
   //Do not update while NFC is connected
   if(field) { return; }
   ret_code_t error_code = NRF_SUCCESS;
-  uint32_t length;
+  uint32_t length = sizeof(m_ndef_msg_buf);
 
   //TODO: define max length, return error if exceeded.
 
@@ -107,45 +107,34 @@ void nfc_binary_record_set(uint8_t* data, uint32_t data_length)
   nfc_t2t_done();
   error_code |= nfc_t2t_setup(nfc_callback, NULL);
   nfc_ndef_msg_clear(&NFC_NDEF_MSG(nfc_msg));
-  memset(binary_record_buf, 0, sizeof(binary_record_buf));
-  memcpy(binary_record_buf, data, data_length);
+  id_record_add(&NFC_NDEF_MSG(nfc_msg));
 
-  static const uint8_t id_code[] = {'i', 'd'};
-  static const uint8_t type_code[] = {'r', '1'};
-  
-  
-  NFC_NDEF_RECORD_BIN_DATA_DEF(binary_record,                                              
-                                     0x02,                                               
-                                     id_code, sizeof(id_code),                                      
-                                     type_code, sizeof(type_code),                              
-                                     binary_record_buf, sizeof(binary_record_buf));
-  // If required, get the record size to length variable.
-  length = sizeof(m_ndef_msg_buf);
+  //TODO: #define data length
+  static char data_string[60] = { 0 };
+  for (uint8_t ii = 0; ii < data_length; ii++){
+    sprintf(data_string+2*ii, "%02x", data[ii]);
+  }
+  uint8_t* data_bytes = (void*)&data_string;
+  static const uint8_t us_code[] = {'v', '3'};
 
-  NRF_LOG_HEXDUMP_INFO(binary_record_buf, sizeof(binary_record_buf));
-  NRF_LOG_INFO("NFC record encode status: %d, length %d\r\n", error_code, length);
-
-
-  // Encode the message to buffer_for_message.
-  //ASSERT(length <= 512); // make sure the message fits into the buffer
-
-  // Add record_1 and record_2 to the message.
-  // record_1 and record_2 are record descriptors as created in the previous
-  // code example.
+  NFC_NDEF_TEXT_RECORD_DESC_DEF(data_text_rec,
+                                  UTF_8,
+                                  us_code,
+                                  sizeof(us_code),
+                                  data_bytes,
+                                  sizeof(data_string));
+   /** @snippet [NFC text usage_1] */
   error_code |= nfc_ndef_msg_record_add(&NFC_NDEF_MSG(nfc_msg),
-                                       &NFC_NDEF_RECORD_BIN_DATA(binary_record));
-  error_code |= nfc_ndef_msg_encode(&NFC_NDEF_MSG(nfc_msg),
-                                            m_ndef_msg_buf,
-                                            &length);
+                                    &NFC_NDEF_TEXT_RECORD_DESC(data_text_rec));
 
-  NRF_LOG_INFO("NFC message encoding status: %d\r\n", error_code);
+  NRF_LOG_INFO("Payload set status: %d\r\n", error_code);
+
+  /* Encode welcome message */
+  initial_msg_encode(m_ndef_msg_buf, &length);
 
   /* Set created message as the NFC payload */
-  error_code |= nfc_t2t_payload_set(m_ndef_msg_buf, sizeof(m_ndef_msg_buf));
-  nrf_delay_ms(10);
-  NRF_LOG_HEXDUMP_INFO(m_ndef_msg_buf, sizeof(m_ndef_msg_buf));
-  nrf_delay_ms(10);
-  NRF_LOG_INFO("Payload set status: %d\r\n", error_code);
+  error_code |= nfc_t2t_payload_set(m_ndef_msg_buf, length);
+
   /* Start sensing NFC field */
   error_code |= nfc_t2t_emulation_start();
   NRF_LOG_INFO("Emulation start status: %d\r\n", error_code);
@@ -157,17 +146,17 @@ void nfc_binary_record_set(uint8_t* data, uint32_t data_length)
 /**
  * @brief Function for creating a record.
  */
-void id_record_add(nfc_ndef_msg_desc_t * p_ndef_msg_desc)
+void id_record_add()
 {
     /** @snippet [NFC text usage_1] */
     uint32_t err_code = NRF_SUCCESS;
     unsigned int mac0 = NRF_FICR->DEVICEID[0];
     unsigned int mac1 = NRF_FICR->DEVICEID[1];
     //8 hex bytes
-    char name[17] = { 0 };
+    static char name[17] = { 0 };
     sprintf(name, "%x%x", mac0, mac1);
     uint8_t* name_bytes = (void*)&name;
-    static const uint8_t en_code[] = {'e', 'n'};
+    static const uint8_t en_code[] = {'i', 'd'};
 
     NFC_NDEF_TEXT_RECORD_DESC_DEF(id_text_rec,
                                   UTF_8,
@@ -176,7 +165,7 @@ void id_record_add(nfc_ndef_msg_desc_t * p_ndef_msg_desc)
                                   name_bytes,
                                   sizeof(name));
    /** @snippet [NFC text usage_1] */
-    err_code = nfc_ndef_msg_record_add(p_ndef_msg_desc,
+    err_code = nfc_ndef_msg_record_add(&NFC_NDEF_MSG(nfc_msg),
                                        &NFC_NDEF_TEXT_RECORD_DESC(id_text_rec));
     APP_ERROR_CHECK(err_code);
 }

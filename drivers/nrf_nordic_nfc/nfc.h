@@ -34,7 +34,7 @@ void id_record_add(nfc_ndef_msg_desc_t * p_ndef_msg_desc);
  * Update NFC payload with given data. Datr is converted to hex and printed as a string.
  * https://infocenter.nordicsemi.com/index.jsp?topic=%2Fcom.nordic.infocenter.sdk5.v12.0.0%2Fnfc_ndef_format_dox.html
  */
-void nfc_binary_record_set(uint8_t* data, size_t data_length);
+void nfc_binary_record_set(uint8_t* data, uint32_t data_length);
 
 /**
  * @brief Callback function for handling NFC events.

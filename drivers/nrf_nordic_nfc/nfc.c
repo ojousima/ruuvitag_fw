@@ -7,6 +7,7 @@
 //#include "nfc_uri_msg.h" for URLs, remember to adjust makefile
 #include "boards.h"
 #include "app_error.h"
+#include "nrf_delay.h"
 
 #define NRF_LOG_MODULE_NAME "NFC"
 #include "nrf_log.h"
@@ -52,7 +53,7 @@ void nfc_callback(void * p_context, nfc_t2t_event_t event, const uint8_t * p_dat
 void initial_msg_encode(uint8_t * p_buffer, uint32_t * p_len)
 {
 
-    id_record_add(&NFC_NDEF_MSG(nfc_msg));
+    //id_record_add(&NFC_NDEF_MSG(nfc_msg));
 
     /** @snippet [NFC text usage_2] */
     uint32_t err_code = nfc_ndef_msg_encode(&NFC_NDEF_MSG(nfc_msg),
@@ -103,7 +104,11 @@ void nfc_binary_record_set(uint8_t* data, uint32_t data_length)
   //Stop NFC
   NRF_LOG_INFO("Stopping NFC \r\n");
   nfc_t2t_emulation_stop();
+  nfc_t2t_done();
+  error_code |= nfc_t2t_setup(nfc_callback, NULL);
   nfc_ndef_msg_clear(&NFC_NDEF_MSG(nfc_msg));
+  memset(binary_record_buf, 0, sizeof(binary_record_buf));
+  memcpy(binary_record_buf, data, data_length);
 
   static const uint8_t id_code[] = {'i', 'd'};
   static const uint8_t type_code[] = {'r', '1'};
@@ -114,17 +119,11 @@ void nfc_binary_record_set(uint8_t* data, uint32_t data_length)
                                      id_code, sizeof(id_code),                                      
                                      type_code, sizeof(type_code),                              
                                      binary_record_buf, sizeof(binary_record_buf));
-  nfc_ndef_bin_payload_memcopy(&NFC_NDEF_BIN_PAYLOAD_DESC(binary_record),
-                                        data,
-                                        &data_length);
   // If required, get the record size to length variable.
   length = sizeof(m_ndef_msg_buf);
-  error_code |= nfc_ndef_record_encode( &NFC_NDEF_RECORD_BIN_DATA(binary_record),
-                                     NDEF_LONE_RECORD,
-                                     m_ndef_msg_buf,
-                                     &length);
 
-   NRF_LOG_INFO("NFC record encode status: %d, length %d\r\n", error_code, length);
+  NRF_LOG_HEXDUMP_INFO(binary_record_buf, sizeof(binary_record_buf));
+  NRF_LOG_INFO("NFC record encode status: %d, length %d\r\n", error_code, length);
 
 
   // Encode the message to buffer_for_message.
@@ -135,13 +134,17 @@ void nfc_binary_record_set(uint8_t* data, uint32_t data_length)
   // code example.
   error_code |= nfc_ndef_msg_record_add(&NFC_NDEF_MSG(nfc_msg),
                                        &NFC_NDEF_RECORD_BIN_DATA(binary_record));
-  error_code |= nfc_ndef_msg_encode( &NFC_NDEF_MSG(nfc_msg),
-                                    m_ndef_msg_buf,
-                                    &length);
+  error_code |= nfc_ndef_msg_encode(&NFC_NDEF_MSG(nfc_msg),
+                                            m_ndef_msg_buf,
+                                            &length);
+
   NRF_LOG_INFO("NFC message encoding status: %d\r\n", error_code);
 
   /* Set created message as the NFC payload */
   error_code |= nfc_t2t_payload_set(m_ndef_msg_buf, sizeof(m_ndef_msg_buf));
+  nrf_delay_ms(10);
+  NRF_LOG_HEXDUMP_INFO(m_ndef_msg_buf, sizeof(m_ndef_msg_buf));
+  nrf_delay_ms(10);
   NRF_LOG_INFO("Payload set status: %d\r\n", error_code);
   /* Start sensing NFC field */
   error_code |= nfc_t2t_emulation_start();

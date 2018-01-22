@@ -74,7 +74,7 @@ APP_TIMER_DEF(main_timer_id);                 // Creates timer id for our progra
 // milliseconds until main loop timer function is called. Other timers can bring
 // application out of sleep at higher (or lower) interval.
 #define MAIN_LOOP_INTERVAL_URL 5000u 
-#define MAIN_LOOP_INTERVAL_RAW 1000u
+#define MAIN_LOOP_INTERVAL_RAW 5000u
 #define DEBOUNCE_THRESHOLD 250u
 
 // Payload requires 8 characters

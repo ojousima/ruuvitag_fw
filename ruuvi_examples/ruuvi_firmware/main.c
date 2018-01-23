@@ -133,11 +133,12 @@ void change_mode(void* data, uint16_t length)
 ret_code_t button_press_handler(const ruuvi_standard_message_t message)
 {
   NRF_LOG_INFO("Button\r\n");
-  nrf_gpio_pin_clear(LED_RED);
-  nrf_gpio_pin_clear(LED_GREEN);
+  //nrf_gpio_pin_clear(LED_RED);
+  //nrf_gpio_pin_clear(LED_GREEN);
   //Change mode on button press
   //Use scheduler, do not use peripherals in interrupt conext (SPI write halts)
-  app_sched_event_put	(NULL, 0, change_mode);
+  // Disabled in this FW version
+  //app_sched_event_put	(NULL, 0, change_mode);
 
   return ENDPOINT_SUCCESS;
 }

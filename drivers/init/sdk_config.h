@@ -1127,7 +1127,7 @@
 // <e> HAL_NFC_CONFIG_LOG_ENABLED - Enables logging in the module.
 //==========================================================
 #ifndef HAL_NFC_CONFIG_LOG_ENABLED
-#define HAL_NFC_CONFIG_LOG_ENABLED 0
+#define HAL_NFC_CONFIG_LOG_ENABLED 1
 #endif
 // <o> HAL_NFC_CONFIG_LOG_LEVEL  - Default Severity level
  

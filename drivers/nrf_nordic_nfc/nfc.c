@@ -15,8 +15,9 @@
 
 #include "sdk_config.h"
 
-//Do not compile RAM-consumin buffers if they're not used
+//Do not compile RAM-consuming buffers if they're not used
 #if NFC_HAL_ENABLED
+
 
 uint8_t m_ndef_msg_buf[256];
 uint8_t binary_record_buf[128];
@@ -111,6 +112,7 @@ void nfc_binary_record_set(uint8_t* data, uint32_t data_length)
 
   //TODO: #define data length
   static char data_string[60] = { 0 };
+  memset(data_string, 0, sizeof(data_string));
   for (uint8_t ii = 0; ii < data_length; ii++){
     sprintf(data_string+2*ii, "%02x", data[ii]);
   }
@@ -122,7 +124,7 @@ void nfc_binary_record_set(uint8_t* data, uint32_t data_length)
                                   us_code,
                                   sizeof(us_code),
                                   data_bytes,
-                                  sizeof(data_string));
+                                  strlen(data_string));
    /** @snippet [NFC text usage_1] */
   error_code |= nfc_ndef_msg_record_add(&NFC_NDEF_MSG(nfc_msg),
                                     &NFC_NDEF_TEXT_RECORD_DESC(data_text_rec));

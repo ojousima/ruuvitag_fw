@@ -1068,7 +1068,7 @@
 
 // <h> nRF_NFC 
 #ifndef NFC_HAL_ENABLED
-#define NFC_HAL_ENABLED 1
+#define NFC_HAL_ENABLED 0
 #endif
 #if  NFC_HAL_ENABLED
 //==========================================================

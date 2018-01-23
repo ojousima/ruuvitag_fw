@@ -223,8 +223,9 @@ void main_timer_handler(void * p_context)
       //environmental.humidity = raw_h;
       //environmental.pressure = raw_p;
       //encodeToRawFormat5(data_buffer, &environmental, &buffer.sensor, acceleration_events, vbat, BLE_TX_POWER);
+      memset(data_buffer, 0, sizeof(data_buffer));
       encodeToSensorDataFormat(data_buffer, &data);
-      nfc_binary_record_set(data_buffer, sizeof(data_buffer));
+      nfc_init(data_buffer, sizeof(data_buffer));
       encodeToCryptedSensorDataFormat(data_buffer, &data, symmetric_key);
     } 
     else 

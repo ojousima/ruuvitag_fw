@@ -101,8 +101,8 @@ uint8_t init_nfc(void)
 {
     uint32_t err_code;
 
-    //Enable BLE STACK
-    err_code = nfc_init();
+    //Enable NFC with empty data message
+    err_code = nfc_init(NULL, 0);
     APP_ERROR_CHECK(err_code);
 
     NRF_LOG_INFO("NFC init\r\n");

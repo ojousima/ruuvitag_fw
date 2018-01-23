@@ -123,7 +123,7 @@ void data_record_add(nfc_ndef_msg_desc_t* nfc_msg, uint8_t* data, uint32_t data_
     sprintf(data_string+2*ii, "%02x", data[ii]);
   }
   uint8_t* data_bytes = (void*)&data_string;
-  static const uint8_t data_code[] = {'d', 'a', 't', 'a'};
+  static const uint8_t data_code[] = {'d', 't'};
 
   NFC_NDEF_TEXT_RECORD_DESC_DEF(data_text_rec,
                                   UTF_8,
@@ -144,11 +144,11 @@ void id_record_add(nfc_ndef_msg_desc_t* nfc_msg)
 {
     /** @snippet [NFC text usage_1] */
     uint32_t err_code = NRF_SUCCESS;
-    unsigned int mac0 = NRF_FICR->DEVICEID[0];
-    unsigned int mac1 = NRF_FICR->DEVICEID[1];
+    unsigned int id0 = NRF_FICR->DEVICEID[0];
+    unsigned int id1 = NRF_FICR->DEVICEID[1];
     //8 hex bytes
     static char name[17] = { 0 };
-    sprintf(name, "%x%x", mac0, mac1);
+    sprintf(name, "%x%x", id0, id1);
     uint8_t* name_bytes = (void*)&name;
     static const uint8_t id_code[] = {'i', 'd'};
 
@@ -171,14 +171,19 @@ void address_record_add(nfc_ndef_msg_desc_t* nfc_msg)
 {
     /** @snippet [NFC text usage_1] */
     uint32_t err_code = NRF_SUCCESS;
-    //MACs are LSB first in FICR
-    unsigned int addr0 = ((NRF_FICR->DEVICEADDR[1]>>16)&0xFF) | 0xC000; //2 MSB must be 11;;
-    unsigned int addr1 = NRF_FICR->DEVICEADDR[0];
+    //TODO: Make a separate lib function for obtaining MAC
+    uint8_t mac_buffer[6] = {0};
+    mac_buffer[0] = ((NRF_FICR->DEVICEADDR[1]>>8)&0xFF) | 0xC0; //2 MSB must be 11;
+    mac_buffer[1] = ((NRF_FICR->DEVICEADDR[1]>>0)&0xFF);
+    mac_buffer[2] = ((NRF_FICR->DEVICEADDR[0]>>24)&0xFF);
+    mac_buffer[3] = ((NRF_FICR->DEVICEADDR[0]>>16)&0xFF);
+    mac_buffer[4] = ((NRF_FICR->DEVICEADDR[0]>>8)&0xFF);
+    mac_buffer[5] = ((NRF_FICR->DEVICEADDR[0]>>0)&0xFF);
     //8 hex bytes
     static char name[17] = { 0 };
-    sprintf(name, "%x%x", addr0, addr1);
+    sprintf(name, "%02x%02x%02x%02x%02x%02x", mac_buffer[0], mac_buffer[1], mac_buffer[2], mac_buffer[3], mac_buffer[4], mac_buffer[5]);
     uint8_t* name_bytes = (void*)&name;
-    static const uint8_t addr_code[] = {'a', 'd', 'd', 'r'};
+    static const uint8_t addr_code[] = {'a', 'd'};
 
     NFC_NDEF_TEXT_RECORD_DESC_DEF(id_text_rec,
                                   UTF_8,

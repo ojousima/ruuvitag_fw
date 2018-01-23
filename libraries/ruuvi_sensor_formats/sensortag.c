@@ -109,6 +109,7 @@ void encodeToCryptedSensorDataFormat(uint8_t* data_buffer, ruuvi_sensor_t* data,
     data_buffer[14] = counter++; //Prevent duplicate values from repeating
     data_buffer[15] = 0;
     data_buffer[16] = 0;
+    //TODO: Move to drivers as this has HW dependency.
     data_buffer[17] = ((NRF_FICR->DEVICEADDR[1]>>8)&0xFF) | 0xC0; //2 MSB must be 11;
     data_buffer[18] = ((NRF_FICR->DEVICEADDR[1]>>0)&0xFF);
     data_buffer[19] = ((NRF_FICR->DEVICEADDR[0]>>24)&0xFF);

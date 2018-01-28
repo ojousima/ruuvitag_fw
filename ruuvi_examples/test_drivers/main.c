@@ -10,15 +10,11 @@
  *
  */
 
-/** @file
+/**
+ * Test cases for the RuuviTag drivers.
  *
- * @defgroup test_drivers
- * @{
- * @ingroup test_drivers
- * @brief Test Cases for Ruuvitag drivers.
- *
- * This file contains some tests to ensure the Ruuvitag drivers are working correct. The output is transmitted via
- * the J-Link RTT.
+ * This file contains some tests to ensure the RuuviTag drivers are
+ * working correctly. The output is transmitted via the J-Link RTT.
  */
 
 /** STDLIB **/
@@ -57,6 +53,7 @@
 
 /** Application tests **/
 #include  "test_led.h"
+#include  "test_nfc.h"
 #include  "test_rng.h"
 #include  "test_rtc.h"
 #include  "test_environmental.h"
@@ -182,6 +179,7 @@ int main(void)
   test_rtc();
   test_rng();
   test_led();
+  test_nfc();
   test_environmental();
   
   test_byte_tryte_conversion();
@@ -210,8 +208,3 @@ int main(void)
     power_manage();
   }
 }
-
-
-/**
- * @}
- */

@@ -97,13 +97,12 @@ init_err_code_t init_ble(void)
  * @retval 1          Something went wrong
  *
  */
-uint8_t init_nfc(void)
+init_err_code_t init_nfc(void)
 {
-    uint32_t err_code;
+    init_err_code_t err_code = NRF_SUCCESS;
 
     //Enable NFC with empty data message
     err_code = nfc_init(NULL, 0);
-    APP_ERROR_CHECK(err_code);
 
     NRF_LOG_INFO("NFC init\r\n");
     return (NRF_SUCCESS == err_code) ? 0 : 1;

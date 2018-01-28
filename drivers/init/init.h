@@ -88,6 +88,17 @@ uint8_t init_nfc(void);
 init_err_code_t init_watchdog(watchdog_event_handler_t handler);
 
 /**
+ * Initialize NFC driver
+ *  
+ * Puts NFC on standby, ready to transmit ID of the tag.
+ * 
+ * @return 0          Operation successful
+ * @retval 1          Something went wrong
+ *
+ */
+init_err_code_t init_nfc(void);
+
+/**
  * Initialize timers
  *
  * This function initializes timers used by main application.

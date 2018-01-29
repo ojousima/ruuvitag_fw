@@ -16,4 +16,3 @@
  * Call `lis2dh12_get_fifo_sample_number(size_t* count);` to determine how many samples should be read from FIFO
  * Call `lis2dh12_read_samples(lis2dh12_sensor_buffer_t* buffer, size_t count)` to read _count_ samples into _buffer_.
  * Access samples by buffer[index].x etc. Samples are int16, in mg.
- 

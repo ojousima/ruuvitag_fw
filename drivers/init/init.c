@@ -184,6 +184,7 @@ init_err_code_t init_lis2dh12(void)
         set_acceleration_handler(lis2dh12_acceleration_handler);
         // Interrupt handler is defined in lis2dh12_acceleration_handler.c, reads the buffer and passes the data onwards to application as configured.
         // Try using PROPRIETARY as a target of accelerometer to implement your own logic.
+        // TODO: Refactor?
         err_code |= pin_interrupt_enable(INT_ACC1_PIN, NRF_GPIOTE_POLARITY_LOTOHI, lis2dh12_int1_handler);
     }
     else

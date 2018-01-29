@@ -23,7 +23,7 @@
 #define RAW_FORMAT_2                    0x05  /**< Proposal, please see https://f.ruuvi.com/t/proposed-next-high-precision-data-format/692 */
 #define RAW_2_ENCODED_DATA_LENGTH       24
 
-#define SENSOR_TAG_DATA_FORMAT_ENCRYPTED 0x06 /**< raw binary, encrypted */
+#define SENSOR_TAG_DATA_FORMAT_ENCRYPTED 0xFA /**< raw binary, encrypted */
 
 #define WEATHER_STATION_URL_FORMAT      0x02  /**< Base64 */
 #define WEATHER_STATION_URL_ID_FORMAT   0x04  /**< Base64, with ID byte */

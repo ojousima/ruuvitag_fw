@@ -21,6 +21,7 @@
 #include "ble_advdata.h"
 #include "ble_advertising.h"
 #include "ble_conn_params.h"
+#include "ble_gap.h"
 #include "ble_nus.h"
 #include "peer_manager.h"
 #include "sdk_errors.h"

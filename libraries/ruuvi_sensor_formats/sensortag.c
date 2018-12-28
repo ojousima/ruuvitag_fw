@@ -133,6 +133,54 @@ void encodeToSensorDataFormat(uint8_t* data_buffer, const ruuvi_sensor_t* data)
 }
 
 /**
+ *  Parses sensor values into RuuviTag format and encrypts the data with given key and nonce. 
+ *  @param char* data_buffer character array with length of 21 bytes
+ */
+
+void encodeToCryptedSensorDataFormat(uint8_t* data_buffer, const ruuvi_sensor_t* data, const uint8_t* key)
+{
+
+    static nrf_ecb_hal_data_t m_ecb_data;
+    static uint8_t counter = 0;
+
+    uint8_t final_key[SOC_ECB_KEY_LENGTH];
+    memcpy(&final_key[0], key, SOC_ECB_KEY_LENGTH);
+
+    memcpy(&m_ecb_data.key[0], &final_key[0], SOC_ECB_KEY_LENGTH);
+    //NRF_LOG_HEXDUMP_INFO(&m_ecb_data.key[0], SOC_ECB_KEY_LENGTH);
+
+    //serialize values into a string
+    data_buffer[0] = SENSOR_TAG_DATA_FORMAT_ENCRYPTED;
+    data_buffer[1] = data->humidity;
+    data_buffer[2] = (data->temperature)>>8;
+    data_buffer[3] = (data->temperature)&0xFF;
+    data_buffer[4] = (data->pressure)>>8;
+    data_buffer[5] = (data->pressure)&0xFF;
+    data_buffer[6] = (data->accX)>>8;
+    data_buffer[7] = (data->accX)&0xFF;
+    data_buffer[8] = (data->accY)>>8;
+    data_buffer[9] = (data->accY)&0xFF;
+    data_buffer[10] = (data->accZ)>>8;
+    data_buffer[11] = (data->accZ)&0xFF;
+    data_buffer[12] = (data->vbat)>>8;
+    data_buffer[13] = (data->vbat)&0xFF;
+    data_buffer[14] = counter++; //Prevent duplicate values from repeating
+    data_buffer[15] = 0;
+    data_buffer[16] = 0;
+    //TODO: Move to drivers as this has HW dependency.
+    data_buffer[17] = ((NRF_FICR->DEVICEADDR[1]>>8)&0xFF) | 0xC0; //2 MSB must be 11;
+    data_buffer[18] = ((NRF_FICR->DEVICEADDR[1]>>0)&0xFF);
+    data_buffer[19] = ((NRF_FICR->DEVICEADDR[0]>>24)&0xFF);
+    data_buffer[20] = ((NRF_FICR->DEVICEADDR[0]>>16)&0xFF);
+    data_buffer[21] = ((NRF_FICR->DEVICEADDR[0]>>8)&0xFF);
+    data_buffer[22] = ((NRF_FICR->DEVICEADDR[0]>>0)&0xFF);
+
+    memcpy(&m_ecb_data.cleartext[0], &data_buffer[1], SOC_ECB_CLEARTEXT_LENGTH);
+    sd_ecb_block_encrypt(&m_ecb_data);
+    memcpy(&data_buffer[1], &m_ecb_data.ciphertext[0], SOC_ECB_CLEARTEXT_LENGTH);
+}
+
+/**
  *  Encodes sensor data into given char* url. The base url must have the base of url written by caller.
  *  For example, url = { 0x03, 'r' 'u' 'u' '.' 'v' 'i' '/' '#' '0' '0' '0' '0' '0' '0' '0' '0'}
  *  The URL may have a length of 18 bytes, 8 of which is consumed by payload. 

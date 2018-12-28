@@ -150,7 +150,7 @@
     <folder
       Name="Libraries"
       exclude=""
-      filter="*.c"
+      filter="*.c;*.h"
       path="../../../../../libraries"
       recurse="Yes" />
     <folder Name="System Files">

@@ -93,6 +93,7 @@ static size_t NFC_message_length = sizeof(NFC_message);
 #define GREEN_LED_OFF nrf_gpio_pin_set(LED_GREEN)
 
 static uint8_t data_buffer[RAWv2_DATA_LENGTH] = { 0 };
+static uint8_t nfc_data_buffer[RAWv2_DATA_LENGTH] = { 0 };
 static bool model_plus = false;          // Flag for sensors available
 static bool fast_advertising = true;     // Connectable mode
 static uint64_t fast_advertising_start = 0;  // Timestamp of when tag became connectable
@@ -105,8 +106,6 @@ static uint8_t advertisement_delay = 0; //Random, static delay to reduce collisi
 
 // Possible modes of the app
 #define RAWv1 0
-#define RAWv2_FAST 1
-#define RAWv2_SLOW 2
 
 // Must be UINT32_T as flash storage operated in 4-byte chunks
 // Will get loaded from flash, this is default.
@@ -114,89 +113,20 @@ static uint32_t tag_mode = RAWv1;
 // Rates of advertising. These must match the tag mode enum.
 static const uint16_t advertising_rates[] = {
   ADVERTISING_INTERVAL_RAW,
-  ADVERTISING_INTERVAL_RAW,
-  ADVERTISING_INTERVAL_RAW_SLOW
 };
 // Rates of advertising. These must match the tag mode enum.
 static const uint16_t advertising_sizes[] = {
-  RAWv1_DATA_LENGTH,
-  RAWv2_DATA_LENGTH,
-  RAWv2_DATA_LENGTH
+  SENSOR_TAG_ENCRYPTED_DATA_LENGTH,
 };
+
+#ifndef SYMMETRIC_KEY 
+#define SYMMETRIC_KEY {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'}
+#endif 
+
+static uint8_t symmetric_key[] = SYMMETRIC_KEY;
 
 // Prototype declaration
 static void main_timer_handler(void * p_context);
-
-/**@brief Handler for button press.
- * Called in scheduler, out of interrupt context.
- */
-void change_mode(void* data, uint16_t length)
-{
-  uint32_t mode = *(uint32_t*)data;
-  app_timer_stop(main_timer_id);
-  if (model_plus)
-  {
-    switch(tag_mode)
-    {  
-      case RAWv2_SLOW:
-        lis2dh12_set_sample_rate(LIS2DH12_SAMPLERATE_RAWv2);
-        app_timer_start(main_timer_id, APP_TIMER_TICKS(MAIN_LOOP_INTERVAL_RAW_SLOW, RUUVITAG_APP_TIMER_PRESCALER), NULL);
-        break;
-
-      case RAWv2_FAST:
-        lis2dh12_set_sample_rate(LIS2DH12_SAMPLERATE_RAWv2);
-        app_timer_start(main_timer_id, APP_TIMER_TICKS(MAIN_LOOP_INTERVAL_RAW, RUUVITAG_APP_TIMER_PRESCALER), NULL);
-        break;
-
-      case RAWv1:
-      default:
-        lis2dh12_set_sample_rate(LIS2DH12_SAMPLERATE_RAWv1);
-        app_timer_start(main_timer_id, APP_TIMER_TICKS(MAIN_LOOP_INTERVAL_RAW, RUUVITAG_APP_TIMER_PRESCALER), NULL);
-        tag_mode = RAWv1;
-        break;
-    }
-    bluetooth_configure_advertising_interval(advertising_rates[tag_mode] + advertisement_delay);
-    bluetooth_apply_configuration();
-  }
-  NRF_LOG_INFO("Updating to %d mode\r\n", (uint32_t) tag_mode);
-  main_timer_handler(NULL);
-}
-
-/**
- * Tag enters connectable mode. Main loop timer will close the connectable mode after 20 seconds.
- *
- * Parameters are unused.
- */
-static void become_connectable(void* data, uint16_t length)
-{
-  fast_advertising_start = millis();
-  fast_advertising = true;
-  bluetooth_configure_advertising_interval(ADVERTISING_INTERVAL_STARTUP + advertisement_delay);
-  bluetooth_configure_advertisement_type(STARTUP_ADVERTISEMENT_TYPE);
-  bluetooth_apply_configuration();
-}
-
-/**
- * Stores current mode to flash, given in parameters.
- *
- * Data is address of the tag_mode.
- * length is length of the address, not data.
- *
- */
-static void store_mode(void* data, uint16_t length)
-{
-  flash_record_set(FDS_FILE_ID, FDS_RECORD_ID, sizeof(tag_mode), data);
-  size_t flash_space_remaining;
-  flash_free_size_get(&flash_space_remaining);
-  NRF_LOG_INFO("Stored mode in flash, Largest continuous space remaining %d bytes\r\n", flash_space_remaining);
-  if(4000 > flash_space_remaining)
-  {
-    NRF_LOG_INFO("Flash space is almost use, running gc\r\n")
-    flash_gc_run();
-    flash_free_size_get(&flash_space_remaining);
-    NRF_LOG_INFO("Continuous space remaining after gc %d bytes\r\n", flash_space_remaining);
-  }
-}
 
 /**
  * Reboots tag. Enters bootloader as button is pressed on boot
@@ -222,8 +152,7 @@ ret_code_t button_press_handler(const ruuvi_standard_message_t message)
   if(false == message.payload[1])
   {
     NRF_LOG_INFO("Button pressed\r\n");
-    GREEN_LED_ON;
-    RED_LED_ON;
+
     // Start timer to reboot tag.
     app_timer_start(reset_timer_id, APP_TIMER_TICKS(BUTTON_RESET_TIME, RUUVITAG_APP_TIMER_PRESCALER), NULL);
 
@@ -231,20 +160,9 @@ ret_code_t button_press_handler(const ruuvi_standard_message_t message)
   if(true == message.payload[1])
   {
      NRF_LOG_INFO("Button released\r\n");
+
      // Cancel reset
      app_timer_stop(reset_timer_id);
-
-     // Update mode
-     tag_mode++;
-     if(tag_mode > 2) { tag_mode = 0; }
-     app_sched_event_put (&tag_mode, sizeof(&tag_mode), change_mode);
-     if(APP_GATT_PROFILE_ENABLED)
-     {
-       app_sched_event_put (NULL, 0, become_connectable);
-     }
-
-     // Schedule store mode to flash
-     app_sched_event_put (&tag_mode, sizeof(&tag_mode), store_mode);
   }
 
   return ENDPOINT_SUCCESS;
@@ -256,7 +174,7 @@ ret_code_t button_press_handler(const ruuvi_standard_message_t message)
  */
 static void reinit_nfc(void* data, uint16_t length)
 {
-  init_nfc();
+  nfc_init(nfc_data_buffer, sizeof(nfc_data_buffer));
 }
 
 /**@brief Function for handling NFC events.
@@ -274,10 +192,6 @@ void app_nfc_callback(void* p_context, nfc_t2t_event_t event, const uint8_t* p_d
     case NFC_T2T_EVENT_FIELD_OFF:
       NRF_LOG_INFO("NFC Field lost \r\n");
       app_sched_event_put (NULL, 0, reinit_nfc);
-      if(APP_GATT_PROFILE_ENABLED)
-      {
-        app_sched_event_put (NULL, 0, become_connectable);
-      }
       break;
 
     case NFC_T2T_EVENT_DATA_READ:
@@ -311,9 +225,7 @@ static void updateAdvertisement(void)
 
 static void main_sensor_task(void* p_data, uint16_t length)
 {
-  // Signal mode by led color.
-  if (RAWv1 == tag_mode) { RED_LED_ON; }
-  else { GREEN_LED_ON; }
+  RED_LED_ON;
 
   int32_t  raw_t  = 0;
   uint32_t raw_p = 0;
@@ -364,21 +276,18 @@ static void main_sensor_task(void* p_data, uint16_t length)
   environmental.humidity = raw_h;
   environmental.pressure = raw_p;
 
-  switch(tag_mode)
-  {
-    case RAWv2_FAST:
-    case RAWv2_SLOW:
-      encodeToRawFormat5(data_buffer, &environmental, &buffer.sensor, acceleration_events, vbat, BLE_TX_POWER);
-      break;
-    
-    case RAWv1:
-    default:
-      encodeToSensorDataFormat(data_buffer, &data);
-      break;
-  }
+  memset(nfc_data_buffer, 0, sizeof(nfc_data_buffer));
+  encodeToSensorDataFormat(nfc_data_buffer, &data);
+  nfc_init(nfc_data_buffer, sizeof(nfc_data_buffer));
+  encodeToCryptedSensorDataFormat(data_buffer, &data, symmetric_key);
+
 
   updateAdvertisement();
-  watchdog_feed();
+  // Reset counter
+  if(millis() < 12*60*60*1000)
+  {
+    watchdog_feed();
+  }
 }
 
 /**@brief Timeout handler for the repeated timer
@@ -386,27 +295,6 @@ static void main_sensor_task(void* p_data, uint16_t length)
 static void main_timer_handler(void * p_context)
 {
   app_sched_event_put (NULL, 0, main_sensor_task);
-}
-
-
-/**
- * @brief Handle interrupt from lis2dh12.
- * Never do long actions, such as sensor reads in interrupt context.
- * Using peripherals in interrupt is also risky,
- * as peripherals might require interrupts for their function.
- *
- *  @param message Ruuvi message, with source, destination, type and 8 byte payload. Ignore for now.
- **/
-ret_code_t lis2dh12_int2_handler(const ruuvi_standard_message_t message)
-{
-  NRF_LOG_DEBUG("Accelerometer interrupt to pin 2\r\n");
-  acceleration_events++;
-  /*
-  app_sched_event_put ((void*)(&message),
-                       sizeof(message),
-                       lis2dh12_scheduler_event_handler);
-  */
-  return NRF_SUCCESS;
 }
 
 /**
@@ -459,6 +347,12 @@ int main(void)
   if( vbat < BATTERY_MIN_V ) { init_status |=BATTERY_FAILED_INIT; }
   else NRF_LOG_INFO("BATTERY initalized \r\n"); 
 
+  pin_interrupt_init(); 
+  if( pin_interrupt_enable(BSP_BUTTON_0, NRF_GPIOTE_POLARITY_TOGGLE, NRF_GPIO_PIN_PULLUP, button_press_handler) ) 
+  {
+    init_status |= BUTTON_FAILED_INIT;
+  }
+
   if(init_sensors() == NRF_SUCCESS )
   {
     model_plus = true;
@@ -471,38 +365,6 @@ int main(void)
   if( init_nfc() ) { init_status |= NFC_FAILED_INIT; } 
   else { NRF_LOG_INFO("NFC init \r\n"); }
 
-  pin_interrupt_init(); 
-
-  if( pin_interrupt_enable(BSP_BUTTON_0, NRF_GPIOTE_POLARITY_TOGGLE, NRF_GPIO_PIN_PULLUP, button_press_handler) ) 
-  {
-    init_status |= BUTTON_FAILED_INIT;
-  }
-
-  // BLE init inits peer manager which uses flash.
-  // Init flash first and check if GC needs to be run
-  if(flash_init())
-  {
-    NRF_LOG_ERROR("Failed to init flash \r\n");
-  }
-  size_t flash_space_remaining = 0;
-  flash_free_size_get(&flash_space_remaining);
-  NRF_LOG_INFO("Largest continuous space remaining %d bytes\r\n", flash_space_remaining);
-  if(4000 > flash_space_remaining)
-  {
-    NRF_LOG_INFO("Flash space is almost used, running gc\r\n")
-    flash_gc_run();
-    flash_free_size_get(&flash_space_remaining);
-    NRF_LOG_INFO("Continuous space remaining after gc %d bytes\r\n", flash_space_remaining);
-  }
-  else if (flash_record_get(FDS_FILE_ID, FDS_RECORD_ID, sizeof(tag_mode), &tag_mode))
-  {
-   NRF_LOG_INFO("Did not find mode in flash, is this first boot? \r\n");
-  }
-  else 
-  {
-    NRF_LOG_INFO("Loaded mode %d from flash\r\n", tag_mode);
-  }
-
   // Initialize BLE Stack. Starts LFCLK required for timer operation.
   if( init_ble() ) { init_status |= BLE_FAILED_INIT; }
   advertisement_delay = NRF_FICR->DEVICEID[0]&0x0F;
@@ -513,22 +375,12 @@ int main(void)
   ble_radio_notification_init(3,
                               NRF_RADIO_NOTIFICATION_DISTANCE_800US,
                               on_radio_evt);
-
-  // Enter stored mode after boot - or default mode if store mode was not found
-  app_sched_event_put (&tag_mode, sizeof(&tag_mode), change_mode);
   
   // Initialize repeated timer for sensor read and single-shot timer for button reset
   if( init_timer(main_timer_id, APP_TIMER_MODE_REPEATED, MAIN_LOOP_INTERVAL_RAW, main_timer_handler) )
   {
     init_status |= TIMER_FAILED_INIT;
   }
-  
-  if( init_timer(reset_timer_id, APP_TIMER_MODE_SINGLE_SHOT, BUTTON_RESET_TIME, reboot) )
-  {
-    init_status |= TIMER_FAILED_INIT;
-  }
-  // Init starts timers, stop the reset
-  app_timer_stop(reset_timer_id);
 
   if( init_rtc() ) { init_status |= RTC_FAILED_INIT; }
   else { NRF_LOG_INFO("RTC initalized \r\n"); }
@@ -538,12 +390,6 @@ int main(void)
   {
     lis2dh12_reset(); // Clear memory.
     
-    // Enable Low-To-Hi rising edge trigger interrupt on nRF52 to detect acceleration events.
-    if (pin_interrupt_enable(INT_ACC2_PIN, NRF_GPIOTE_POLARITY_LOTOHI, NRF_GPIO_PIN_NOPULL, lis2dh12_int2_handler) )
-    {
-      init_status |= ACC_INT_FAILED_INIT;
-    }
-    
     nrf_delay_ms(10); // Wait for LIS reboot.
     // Enable XYZ axes.
     lis2dh12_enable();
@@ -551,7 +397,6 @@ int main(void)
     lis2dh12_set_sample_rate(LIS2DH12_SAMPLERATE_RAWv1);
     lis2dh12_set_resolution(LIS2DH12_RESOLUTION);
 
-    lis2dh12_set_activity_interrupt_pin_2(LIS2DH12_ACTIVITY_THRESHOLD);
     NRF_LOG_INFO("Accelerometer configuration done \r\n");
 
     // oversampling must be set for each used sensor.

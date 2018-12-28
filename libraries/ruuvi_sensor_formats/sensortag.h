@@ -17,8 +17,10 @@
 10-11: int16_t   acceleration_z;  // mg
 12-13: int16_t   vbat;            // mv
 */
-#define SENSOR_TAG_DATA_FORMAT          0x03				  /**< raw binary, includes acceleration */
-#define SENSORTAG_ENCODED_DATA_LENGTH   14            /**< 14 bytes  */
+#define SENSOR_TAG_DATA_FORMAT           0x03	       /**< raw binary, includes acceleration */
+#define SENSORTAG_ENCODED_DATA_LENGTH    14            /**< 14 bytes  */
+#define SENSOR_TAG_DATA_FORMAT_ENCRYPTED 0xFA
+#define SENSOR_TAG_ENCRYPTED_DATA_LENGTH 23            /**< 23 bytes  */
 
 #define RAW_FORMAT_2                    0x05          /**< Proposal, please see https://f.ruuvi.com/t/proposed-next-high-precision-data-format/692 */
 #define RAW_2_ENCODED_DATA_LENGTH       24
@@ -68,6 +70,8 @@ void encodeToSensorDataFormat(uint8_t* data_buffer, const ruuvi_sensor_t* data);
  *  @param vbatt Voltage of battery in millivolts
  */
 void encodeToRawFormat5(uint8_t* data_buffer, const bme280_data_t* environmental, const acceleration_t* acceleration, uint16_t acceleration_events, uint16_t vbatt, int8_t tx_pwr);
+
+void encodeToCryptedSensorDataFormat(uint8_t* data_buffer, const ruuvi_sensor_t* data, const uint8_t* key);
 
 
 /**

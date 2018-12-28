@@ -7,7 +7,7 @@
 #define APP_DEVICE_NAME_LENGTH          APPLICATION_DEVICE_NAME_LENGTH
 #define APPLICATION_ADV_INTERVAL        1010                            /**< ms. Use value which is not exactly divisible by 1000 ms to be seen by gateways which have limited scan windows in second divisible intervals. **/
 #define APP_TX_POWER                    4                               /**< dBm **/
-#define INIT_FWREV                      "2.4.0"                         /**< Github tag. Do not include specifiers such as "alpha" so you can accept ready binaries as they are **/
+#define INIT_FWREV                      "AES 2.4.0"                         /**< Github tag. Do not include specifiers such as "alpha" so you can accept ready binaries as they are **/
 #define INIT_SWREV                      INIT_FWREV                      /**< FW and SW are same thing in this context **/                             
 
 // milliseconds until main loop timer function is called. Other timers can bring
@@ -16,8 +16,8 @@
 #define ADVERTISING_INTERVAL_RAW      2010u
 #define MAIN_LOOP_INTERVAL_RAW_SLOW   6010u
 #define ADVERTISING_INTERVAL_RAW_SLOW 6010u
-#define ADVERTISING_STARTUP_PERIOD    5000u //milliseconds app advertises at startup speed.
-#define ADVERTISING_INTERVAL_STARTUP  100u   //milliseconds app advertises at startup speed.
+#define ADVERTISING_STARTUP_PERIOD    500u // milliseconds app advertises at startup speed.
+#define ADVERTISING_INTERVAL_STARTUP  100u // Startup advertising interval
 
 //Raw v2
 #define RAWv1_DATA_LENGTH 14

@@ -120,7 +120,7 @@ static const uint16_t advertising_sizes[] = {
 };
 
 #ifndef SYMMETRIC_KEY 
-#define SYMMETRIC_KEY {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'}
+  #define SYMMETRIC_KEY {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'}
 #endif 
 
 static uint8_t symmetric_key[] = SYMMETRIC_KEY;
@@ -187,6 +187,8 @@ void app_nfc_callback(void* p_context, nfc_t2t_event_t event, const uint8_t* p_d
   {
     case NFC_T2T_EVENT_FIELD_ON:
       NRF_LOG_INFO("NFC Field detected \r\n");
+      // Start timer to reboot tag.
+      app_timer_start(reset_timer_id, APP_TIMER_TICKS(NFC_RESET_TIME, RUUVITAG_APP_TIMER_PRESCALER), NULL);
       break;
 
     case NFC_T2T_EVENT_FIELD_OFF:
@@ -381,6 +383,11 @@ int main(void)
   {
     init_status |= TIMER_FAILED_INIT;
   }
+  if( init_timer(reset_timer_id, APP_TIMER_MODE_SINGLE_SHOT, NFC_RESET_TIME, reboot) )
+  {
+    init_status |= TIMER_FAILED_INIT;
+  }
+  app_timer_stop(reset_timer_id);
 
   if( init_rtc() ) { init_status |= RTC_FAILED_INIT; }
   else { NRF_LOG_INFO("RTC initalized \r\n"); }
@@ -432,11 +439,12 @@ int main(void)
 
   // Turn off red led, leave green on to signal model+ without errors
   RED_LED_OFF;
+  nrf_delay_ms(250);
+
+  // Read sensors before first broadcast
   app_sched_event_put (NULL, 0, main_sensor_task);
   app_sched_execute();
-  nrf_delay_ms(MAIN_LOOP_INTERVAL_RAW + 100);
-
-  // 
+  
   bluetooth_configure_advertisement_type(STARTUP_ADVERTISEMENT_TYPE);
   bluetooth_tx_power_set(BLE_TX_POWER);
   bluetooth_configure_advertising_interval(ADVERTISING_INTERVAL_STARTUP);

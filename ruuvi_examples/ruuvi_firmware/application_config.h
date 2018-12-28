@@ -10,6 +10,8 @@
 #define APPLICATION_BATTERY_INTERVAL 10000u
 // Milliseconds to hold down the button before reset
 #define BUTTON_RESET_TIME 3000u
+// Milliseconds after NFC connection to reset
+#define NFC_RESET_TIME 30000u
 
 // 1, 2, 4, 8, 16.
 // Oversampling increases current consumption, but lowers noise.

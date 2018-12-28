@@ -178,6 +178,8 @@ void encodeToCryptedSensorDataFormat(uint8_t* data_buffer, const ruuvi_sensor_t*
     memcpy(&m_ecb_data.cleartext[0], &data_buffer[1], SOC_ECB_CLEARTEXT_LENGTH);
     sd_ecb_block_encrypt(&m_ecb_data);
     memcpy(&data_buffer[1], &m_ecb_data.ciphertext[0], SOC_ECB_CLEARTEXT_LENGTH);
+    NRF_LOG_HEXDUMP_INFO(&data_buffer[1], SOC_ECB_KEY_LENGTH);
+
 }
 
 /**

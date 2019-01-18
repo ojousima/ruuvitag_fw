@@ -96,7 +96,7 @@ static uint8_t data_buffer[RAWv2_DATA_LENGTH] = { 0 };
 static bool model_plus = false;          // Flag for sensors available
 static bool fast_advertising = true;     // Connectable mode
 static uint64_t fast_advertising_start = 0;  // Timestamp of when tag became connectable
-static uint64_t debounce = 0;        // Flag for avoiding double presses
+//static uint64_t debounce = 0;        // Flag for avoiding double presses
 static uint16_t acceleration_events = 0; // Number of times accelerometer has triggered
 static volatile uint16_t vbat = 0; //Update in interrupt after radio activity.
 static uint64_t last_battery_measurement = 0; // Timestamp of VBat update.
@@ -165,6 +165,7 @@ static void become_connectable(void* data, uint16_t length)
  * length is length of the address, not data.
  *
  */
+/*
 static void store_mode(void* data, uint16_t length)
 {
   // Point the record directly to word-aligned tag mode rather than data pointer passed as context.
@@ -187,7 +188,7 @@ static void store_mode(void* data, uint16_t length)
     }
   }
 }
-
+*/
 /**
  * Reboots tag. Enters bootloader as button is pressed on boot
  */

@@ -14,8 +14,8 @@
 // application out of sleep at higher (or lower) interval.
 #define MAIN_LOOP_INTERVAL_RAW        2010u
 #define ADVERTISING_INTERVAL_RAW      2010u
-#define MAIN_LOOP_INTERVAL_RAW_SLOW   6010u
-#define ADVERTISING_INTERVAL_RAW_SLOW 6010u
+#define MAIN_LOOP_INTERVAL_RAW_SLOW   9900u
+#define ADVERTISING_INTERVAL_RAW_SLOW 9900u
 #define ADVERTISING_STARTUP_PERIOD    5000u // milliseconds app advertises at startup speed.
 #define ADVERTISING_INTERVAL_STARTUP  100u  // Interval of startup advertising
 

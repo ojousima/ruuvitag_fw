@@ -104,23 +104,17 @@ static ruuvi_sensor_t data;
 static uint8_t advertisement_delay = 0; //Random, static delay to reduce collisions.
 
 // Possible modes of the app
-#define RAWv1 0
-#define RAWv2_FAST 1
-#define RAWv2_SLOW 2
+#define RAWv2_SLOW 0
 
 // Must be UINT32_T as flash storage operated in 4-byte chunks
 // Will get loaded from flash, this is default.
-static uint32_t tag_mode __attribute__ ((aligned (4))) = RAWv1;
+static uint32_t tag_mode __attribute__ ((aligned (4))) = RAWv2_SLOW;
 // Rates of advertising. These must match the tag mode enum.
 static const uint16_t advertising_rates[] = {
-  ADVERTISING_INTERVAL_RAW,
-  ADVERTISING_INTERVAL_RAW,
   ADVERTISING_INTERVAL_RAW_SLOW
 };
 // Rates of advertising. These must match the tag mode enum.
 static const uint16_t advertising_sizes[] = {
-  RAWv1_DATA_LENGTH,
-  RAWv2_DATA_LENGTH,
   RAWv2_DATA_LENGTH
 };
 
@@ -138,20 +132,9 @@ void change_mode(void* data, uint16_t length)
     switch(tag_mode)
     {  
       case RAWv2_SLOW:
+      default:
         lis2dh12_set_sample_rate(LIS2DH12_SAMPLERATE_RAWv2);
         app_timer_start(main_timer_id, APP_TIMER_TICKS(MAIN_LOOP_INTERVAL_RAW_SLOW, RUUVITAG_APP_TIMER_PRESCALER), NULL);
-        break;
-
-      case RAWv2_FAST:
-        lis2dh12_set_sample_rate(LIS2DH12_SAMPLERATE_RAWv2);
-        app_timer_start(main_timer_id, APP_TIMER_TICKS(MAIN_LOOP_INTERVAL_RAW, RUUVITAG_APP_TIMER_PRESCALER), NULL);
-        break;
-
-      case RAWv1:
-      default:
-        lis2dh12_set_sample_rate(LIS2DH12_SAMPLERATE_RAWv1);
-        app_timer_start(main_timer_id, APP_TIMER_TICKS(MAIN_LOOP_INTERVAL_RAW, RUUVITAG_APP_TIMER_PRESCALER), NULL);
-        tag_mode = RAWv1;
         break;
     }
     bluetooth_configure_advertising_interval(advertising_rates[tag_mode] + advertisement_delay);
@@ -221,6 +204,7 @@ static void reboot(void* p_context)
  *                 message.payload[0] has pin number (4)
  *                 message.payload[1] has pin state, 1 if high, 0 if low.
  */
+/*
 ret_code_t button_press_handler(const ruuvi_standard_message_t message)
 {
   // Avoid double presses
@@ -261,6 +245,7 @@ ret_code_t button_press_handler(const ruuvi_standard_message_t message)
   debounce = millis();
   return ENDPOINT_SUCCESS;
 }
+*/
 
 /**
  * Work around NFC data corruption bug by reinitializing NFC data after field has been lost.
@@ -327,9 +312,8 @@ static void updateAdvertisement(void)
 
 static void main_sensor_task(void* p_data, uint16_t length)
 {
-  // Signal mode by led color.
-  if (RAWv1 == tag_mode) { RED_LED_ON; }
-  else { GREEN_LED_ON; }
+  GREEN_LED_ON;
+  bme280_set_mode(BME280_MODE_FORCED);
 
   int32_t  raw_t  = 0;
   uint32_t raw_p = 0;
@@ -382,14 +366,9 @@ static void main_sensor_task(void* p_data, uint16_t length)
 
   switch(tag_mode)
   {
-    case RAWv2_FAST:
     case RAWv2_SLOW:
-      encodeToRawFormat5(data_buffer, &environmental, &buffer.sensor, acceleration_events, vbat, BLE_TX_POWER);
-      break;
-    
-    case RAWv1:
     default:
-      encodeToSensorDataFormat(data_buffer, &data);
+      encodeToRawFormat5(data_buffer, &environmental, &buffer.sensor, acceleration_events, vbat, BLE_TX_POWER);
       break;
   }
 
@@ -489,10 +468,12 @@ int main(void)
 
   pin_interrupt_init(); 
 
+  /*
   if( pin_interrupt_enable(BSP_BUTTON_0, NRF_GPIOTE_POLARITY_TOGGLE, NRF_GPIO_PIN_PULLUP, button_press_handler) ) 
   {
     init_status |= BUTTON_FAILED_INIT;
   }
+  */
 
   // Initialize BLE Stack. Starts LFCLK required for timer operation.
   if( init_ble() ) { init_status |= BLE_FAILED_INIT; }
@@ -577,7 +558,7 @@ int main(void)
     bme280_set_oversampling_press(BME280_PRESSURE_OVERSAMPLING);
     bme280_set_iir(BME280_IIR);
     bme280_set_interval(BME280_DELAY);
-    bme280_set_mode(BME280_MODE_NORMAL);
+    bme280_set_mode(BME280_MODE_FORCED);
     NRF_LOG_INFO("BME280 configuration done \r\n");
   }
 

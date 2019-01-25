@@ -17,7 +17,7 @@
 #define NFC_HAL_ENABLED 1
 #define CRC16_ENABLED   1  //CRC required by DFU
 #define CRC32_ENABLED   1
-#define NRF_LOG_ENABLED 1
+#define NRF_LOG_ENABLED 0  
 
 #if APP_GATT_PROFILE_ENABLED
 #define BLE_DIS_ENABLED 1  //Device information service

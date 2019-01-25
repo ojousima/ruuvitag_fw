@@ -39,6 +39,7 @@ SRC_FILES += \
   $(PROJ_DIR)/../../libraries/ruuvi_sensor_formats/sensortag.c \
   $(PROJ_DIR)/../../sdk_overrides/app_button.c \
   $(PROJ_DIR)/../../sdk_overrides/nrf_drv_wdt.c \
+  $(PROJ_DIR)/../../sdk_overrides/ble_radio_notification.c \
   $(PROJ_DIR)/ble_services/application_ble_event_handlers.c \
   $(PROJ_DIR)/ble_services/application_service_if.c \
   $(PROJ_DIR)/ble_services/nrf_dfu_flash_buttonless.c \
@@ -130,6 +131,7 @@ INC_FOLDERS += \
   ../config \
   $(SDK_ROOT)/components \
   $(SDK_ROOT)/components/ble/ble_advertising \
+  $(SDK_ROOT)/components/ble/ble_radio_notification/ \
   $(SDK_ROOT)/components/ble/ble_dtm \
   $(SDK_ROOT)/components/ble/ble_racp \
   $(SDK_ROOT)/components/ble/ble_services/ble_ancs_c \

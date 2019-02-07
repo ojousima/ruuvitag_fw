@@ -19,7 +19,7 @@
 */
 #define SENSOR_TAG_DATA_FORMAT           0x03	       /**< raw binary, includes acceleration */
 #define SENSORTAG_ENCODED_DATA_LENGTH    14            /**< 14 bytes  */
-#define SENSOR_TAG_DATA_FORMAT_ENCRYPTED 0x06
+#define SENSOR_TAG_DATA_FORMAT_ENCRYPTED 0xFA
 #define SENSOR_TAG_ENCRYPTED_DATA_LENGTH 24            /**< 23 bytes + trailing null for legacy */
 
 #define RAW_FORMAT_2                    0x05          /**< Proposal, please see https://f.ruuvi.com/t/proposed-next-high-precision-data-format/692 */

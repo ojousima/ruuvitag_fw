@@ -96,7 +96,7 @@ static uint8_t data_buffer[RAWv2_DATA_LENGTH] = { 0 };
 static bool model_plus = false;          // Flag for sensors available
 static bool fast_advertising = true;     // Connectable mode
 static uint64_t fast_advertising_start = 0;  // Timestamp of when tag became connectable
-//static uint64_t debounce = 0;        // Flag for avoiding double presses
+static uint64_t debounce = 0;        // Flag for avoiding double presses
 static uint16_t acceleration_events = 0; // Number of times accelerometer has triggered
 static volatile uint16_t vbat = 0; //Update in interrupt after radio activity.
 static uint64_t last_battery_measurement = 0; // Timestamp of VBat update.
@@ -105,16 +105,19 @@ static uint8_t advertisement_delay = 0; //Random, static delay to reduce collisi
 
 // Possible modes of the app
 #define RAWv2_SLOW 0
+#define RAWv2_FAST 1
 
 // Must be UINT32_T as flash storage operated in 4-byte chunks
 // Will get loaded from flash, this is default.
 static uint32_t tag_mode __attribute__ ((aligned (4))) = RAWv2_SLOW;
 // Rates of advertising. These must match the tag mode enum.
 static const uint16_t advertising_rates[] = {
-  ADVERTISING_INTERVAL_RAW_SLOW
+  ADVERTISING_INTERVAL_RAW_SLOW,
+  ADVERTISING_INTERVAL_RAW
 };
 // Rates of advertising. These must match the tag mode enum.
 static const uint16_t advertising_sizes[] = {
+  RAWv2_DATA_LENGTH,
   RAWv2_DATA_LENGTH
 };
 
@@ -131,6 +134,7 @@ void change_mode(void* data, uint16_t length)
   {
     switch(tag_mode)
     {  
+      case RAWv2_FAST:
       case RAWv2_SLOW:
       default:
         lis2dh12_set_sample_rate(LIS2DH12_SAMPLERATE_RAWv2);
@@ -148,7 +152,7 @@ void change_mode(void* data, uint16_t length)
  * Tag enters connectable mode. Main loop timer will close the connectable mode after 20 seconds.
  *
  * Parameters are unused.
- */
+ *
 static void become_connectable(void* data, uint16_t length)
 {
   fast_advertising_start = millis();
@@ -157,6 +161,7 @@ static void become_connectable(void* data, uint16_t length)
   bluetooth_configure_advertisement_type(STARTUP_ADVERTISEMENT_TYPE);
   bluetooth_apply_configuration();
 }
+*/
 
 /**
  * Stores current mode to flash, given in parameters.
@@ -165,7 +170,6 @@ static void become_connectable(void* data, uint16_t length)
  * length is length of the address, not data.
  *
  */
-/*
 static void store_mode(void* data, uint16_t length)
 {
   // Point the record directly to word-aligned tag mode rather than data pointer passed as context.
@@ -188,7 +192,6 @@ static void store_mode(void* data, uint16_t length)
     }
   }
 }
-*/
 /**
  * Reboots tag. Enters bootloader as button is pressed on boot
  */
@@ -205,7 +208,7 @@ static void reboot(void* p_context)
  *                 message.payload[0] has pin number (4)
  *                 message.payload[1] has pin state, 1 if high, 0 if low.
  */
-/*
+
 ret_code_t button_press_handler(const ruuvi_standard_message_t message)
 {
   // Avoid double presses
@@ -234,10 +237,11 @@ ret_code_t button_press_handler(const ruuvi_standard_message_t message)
      tag_mode++;
      if(tag_mode > 2) { tag_mode = 0; }
      app_sched_event_put (&tag_mode, sizeof(&tag_mode), change_mode);
-     if(APP_GATT_PROFILE_ENABLED)
+     #if (APP_GATT_PROFILE_ENABLED)
      {
        app_sched_event_put (NULL, 0, become_connectable);
      }
+     #endif
 
      // Schedule store mode to flash
      app_sched_event_put (NULL, 0, store_mode);
@@ -246,7 +250,7 @@ ret_code_t button_press_handler(const ruuvi_standard_message_t message)
   debounce = millis();
   return ENDPOINT_SUCCESS;
 }
-*/
+
 
 /**
  * Work around NFC data corruption bug by reinitializing NFC data after field has been lost.
@@ -274,10 +278,11 @@ void app_nfc_callback(void* p_context, nfc_t2t_event_t event, const uint8_t* p_d
     case NFC_T2T_EVENT_FIELD_OFF:
       NRF_LOG_INFO("NFC Field lost \r\n");
       app_sched_event_put (NULL, 0, reinit_nfc);
-      if(APP_GATT_PROFILE_ENABLED)
+      #if(APP_GATT_PROFILE_ENABLED)
       {
         app_sched_event_put (NULL, 0, become_connectable);
       }
+      #endif 
       break;
 
     case NFC_T2T_EVENT_DATA_READ:
@@ -313,7 +318,14 @@ static void updateAdvertisement(void)
 
 static void main_sensor_task(void* p_data, uint16_t length)
 {
-  GREEN_LED_ON;
+  if(RAWv2_SLOW == tag_mode)
+  {
+    GREEN_LED_ON;
+  }
+  else
+  {
+    RED_LED_ON;
+  }
   bme280_set_mode(BME280_MODE_FORCED);
 
   int32_t  raw_t  = 0;
@@ -469,12 +481,12 @@ int main(void)
 
   pin_interrupt_init(); 
 
-  /*
+
   if( pin_interrupt_enable(BSP_BUTTON_0, NRF_GPIOTE_POLARITY_TOGGLE, NRF_GPIO_PIN_PULLUP, button_press_handler) ) 
   {
     init_status |= BUTTON_FAILED_INIT;
   }
-  */
+
 
   // Initialize BLE Stack. Starts LFCLK required for timer operation.
   if( init_ble() ) { init_status |= BLE_FAILED_INIT; }

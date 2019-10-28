@@ -245,6 +245,7 @@ static void reboot(void* p_context)
 ret_code_t button_press_handler(const ruuvi_standard_message_t message)
 {
   // Debounce
+  /*
   if(false == message.payload[1] && ((millis() - debounce) > DEBOUNCE_THRESHOLD) && !pressed)
   {
     NRF_LOG_INFO("Button pressed\r\n");
@@ -281,7 +282,21 @@ ret_code_t button_press_handler(const ruuvi_standard_message_t message)
   }
 
   debounce = millis();
+  */
   return ENDPOINT_SUCCESS;
+}
+
+ret_code_t pir_handler(const ruuvi_standard_message_t message)
+{
+   NRF_LOG_INFO("PIR\r\n");
+   if(message.payload[1])
+   {
+     RED_LED_ON;
+   }
+  else
+  {
+    RED_LED_OFF;
+  }
 }
 
 /**
@@ -510,13 +525,18 @@ int main(void)
 
   // Init NFC ASAP in case we're waking from deep sleep via NFC (todo)
   // outputs ID:DEVICEID ,MAC:DEVICEADDR, SW:REVision
-  set_nfc_callback(app_nfc_callback);
-  if( init_nfc() ) { init_status |= NFC_FAILED_INIT; } 
-  else { NRF_LOG_INFO("NFC init \r\n"); }
+  // set_nfc_callback(app_nfc_callback);
+  // if( init_nfc() ) { init_status |= NFC_FAILED_INIT; } 
+  // else { NRF_LOG_INFO("NFC init \r\n"); }
 
   pin_interrupt_init(); 
 
   if( pin_interrupt_enable(BSP_BUTTON_0, NRF_GPIOTE_POLARITY_TOGGLE, NRF_GPIO_PIN_PULLUP, button_press_handler) ) 
+  {
+    init_status |= BUTTON_FAILED_INIT;
+  }
+
+  if( pin_interrupt_enable(10, NRF_GPIOTE_POLARITY_TOGGLE, NRF_GPIO_PIN_PULLDOWN, pir_handler) ) 
   {
     init_status |= BUTTON_FAILED_INIT;
   }

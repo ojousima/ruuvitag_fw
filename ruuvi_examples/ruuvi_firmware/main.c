@@ -379,6 +379,9 @@ static void main_sensor_task(void* p_data, uint16_t length)
     data.temperature = bme280_get_temperature();
     data.pressure    = bme280_get_pressure();
     data.humidity    = bme280_get_humidity();
+    // Magic compensation for humidity.
+    data.humidity += (6<<10);
+    data.humidity = (data.humidity > (100 << 10)) ? (100 << 10) : data.humidity;
   }
   // If only temperature sensor is present.
   else
@@ -481,6 +484,7 @@ int main(void)
 
   if( init_log() ) { init_status |=LOG_FAILED_INIT; }
   else { NRF_LOG_INFO("LOG initialized \r\n"); } // subsequent initializations assume log is working
+  nrf_delay_ms(10);
 
   // start watchdog now in case program hangs up.
   // watchdog_default_handler logs error and resets the tag.
@@ -491,7 +495,8 @@ int main(void)
   vbat = getBattery();
 
   if( vbat < BATTERY_MIN_V ) { init_status |=BATTERY_FAILED_INIT; }
-  else NRF_LOG_INFO("BATTERY initalized \r\n"); 
+  else NRF_LOG_INFO("BATTERY initalized \r\n");
+  nrf_delay_ms(10);
 
   if(init_lis2dh12() == NRF_SUCCESS )
   {
@@ -499,6 +504,7 @@ int main(void)
     NRF_LOG_INFO("Accelerometer initialized \r\n");  
   }
   else { init_status |= ACC_INT_FAILED_INIT; }
+  nrf_delay_ms(10);
 
   if(init_bme280() == NRF_SUCCESS )
   {
@@ -506,6 +512,7 @@ int main(void)
     NRF_LOG_INFO("BME initialized \r\n");  
   } 
   else { init_status |= TEMP_HUM_PRESS_FAILED_INIT; }
+  nrf_delay_ms(10);
 
 
   // Init NFC ASAP in case we're waking from deep sleep via NFC (todo)
@@ -513,6 +520,7 @@ int main(void)
   set_nfc_callback(app_nfc_callback);
   if( init_nfc() ) { init_status |= NFC_FAILED_INIT; } 
   else { NRF_LOG_INFO("NFC init \r\n"); }
+  nrf_delay_ms(10);
 
   pin_interrupt_init(); 
 
@@ -520,6 +528,7 @@ int main(void)
   {
     init_status |= BUTTON_FAILED_INIT;
   }
+  nrf_delay_ms(10);
 
   // Initialize BLE Stack. Starts LFCLK required for timer operation.
   if( init_ble() ) { init_status |= BLE_FAILED_INIT; }
@@ -533,6 +542,7 @@ int main(void)
   ble_radio_notification_init(3,
                               NRF_RADIO_NOTIFICATION_DISTANCE_800US,
                               on_radio_evt);
+  nrf_delay_ms(10);
 
   // If GATT is enabled BLE init inits peer manager which uses flash.
   // BLE init should handle insufficient space gracefully (i.e. erase flash and proceed). 
@@ -559,9 +569,11 @@ int main(void)
   {
     NRF_LOG_INFO("Loaded mode %d from flash\r\n", tag_mode);
   }
+  nrf_delay_ms(10);
 
   if( init_rtc() ) { init_status |= RTC_FAILED_INIT; }
   else { NRF_LOG_INFO("RTC initialized \r\n"); }
+  nrf_delay_ms(10);
 
   // Configure lis2dh12
   if (lis2dh12_available)    
@@ -584,6 +596,8 @@ int main(void)
     lis2dh12_set_activity_interrupt_pin_2(LIS2DH12_ACTIVITY_THRESHOLD);
     NRF_LOG_INFO("Accelerometer configuration done \r\n");
   }
+  nrf_delay_ms(10);
+
   if(bme280_available)
   {
     // oversampling must be set for each used sensor.
@@ -595,6 +609,7 @@ int main(void)
     bme280_set_mode(BME280_MODE_NORMAL);
     NRF_LOG_INFO("BME280 configuration done \r\n");
   }
+  nrf_delay_ms(10);
 
   // Enter stored mode after boot - or default mode if store mode was not found
   app_sched_event_put (&tag_mode, sizeof(&tag_mode), change_mode);
@@ -611,6 +626,7 @@ int main(void)
   }
   // Init starts timers, stop the reset
   app_timer_stop(reset_timer_id);
+  nrf_delay_ms(10);
 
   // Log errors, add a note to NFC, blink RED to visually indicate the problem
   if (init_status)

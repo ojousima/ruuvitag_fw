@@ -351,9 +351,10 @@ static void main_sensor_task(void* p_data, uint16_t length)
 {
   // Signal mode by led color.
   uint8_t has_moved = 0;
-  if(acceleration_events-- > 0)
+  if(acceleration_events > 0)
   {
       has_moved = 1;
+      acceleration_events--;
   }
   if (RAWv1 == tag_mode) { RED_LED_ON; }
   else { GREEN_LED_ON; }

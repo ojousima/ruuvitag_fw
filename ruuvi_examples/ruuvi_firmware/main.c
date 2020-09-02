@@ -350,6 +350,11 @@ static void updateAdvertisement(void)
 static void main_sensor_task(void* p_data, uint16_t length)
 {
   // Signal mode by led color.
+  uint8_t has_moved = 0;
+  if(acceleration_events-- > 0)
+  {
+      has_moved = 1;
+  }
   if (RAWv1 == tag_mode) { RED_LED_ON; }
   else { GREEN_LED_ON; }
 
@@ -402,7 +407,7 @@ static void main_sensor_task(void* p_data, uint16_t length)
   {
     case RAWv2_FAST:
     case RAWv2_SLOW:
-      encodeToRawFormat5(data_buffer, &data, acceleration_events, BLE_TX_POWER);
+      encodeToRawFormat5(data_buffer, &data, has_moved, BLE_TX_POWER);
       break;
     
     case RAWv1:
@@ -434,7 +439,7 @@ static void main_timer_handler(void * p_context)
 ret_code_t lis2dh12_int2_handler(const ruuvi_standard_message_t message)
 {
   NRF_LOG_DEBUG("Accelerometer interrupt to pin 2\r\n");
-  acceleration_events++;
+  acceleration_events = 10;
   /*
   app_sched_event_put ((void*)(&message),
                        sizeof(message),
